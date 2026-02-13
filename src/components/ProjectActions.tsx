@@ -4,7 +4,7 @@
 import { deleteProject, updateProject } from '@/app/actions/modify-actions'
 import { useState } from 'react'
 
-export default function ProjectActions({ projectId, title, description, dueDate }: { projectId: string, title: string, description: string, dueDate: Date | null }) {
+export default function ProjectActions({ projectId, title, description, dueDate, canDelete = true }: { projectId: string, title: string, description: string, dueDate: Date | null, canDelete?: boolean }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(title)
   const [editDescription, setEditDescription] = useState(description)
@@ -83,6 +83,7 @@ export default function ProjectActions({ projectId, title, description, dueDate 
       </button>
       <button
         onClick={handleDelete}
+        disabled={!canDelete}
         className="text-lg bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-lg transition-all flex items-center justify-center"
         title="削除"
       >

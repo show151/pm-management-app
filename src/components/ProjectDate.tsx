@@ -1,7 +1,7 @@
 // src/components/ProjectDate.tsx
 'use client'
 
-export default function ProjectDate({ projectId, date, isCompleted }: { projectId: string, date: Date | null, isCompleted: boolean }) {
+export default function ProjectDate({ date, isCompleted }: { date: Date | null, isCompleted: boolean }) {
   const dateValue = date ? new Date(date).toISOString().split('T')[0] : ''
   const isOverdue = date && new Date(date) < new Date() && !isCompleted
   const isToday = dateValue === new Date().toISOString().split('T')[0]

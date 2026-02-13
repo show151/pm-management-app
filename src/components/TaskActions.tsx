@@ -1,7 +1,7 @@
 // src/components/TaskActions.tsx
 'use client'
 
-import { deleteTask, updateTask, updateTaskDetails } from '@/app/actions/modify-actions'
+import { deleteTask, updateTaskDetails } from '@/app/actions/modify-actions'
 import { useState } from 'react'
 
 type TaskActionsProps = {

@@ -2,7 +2,6 @@
 
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
 import Header from '@/components/Header'
 import NewProjectButton from '@/components/NewProjectButton'
 import ProjectDate from '@/components/ProjectDate'
@@ -10,6 +9,7 @@ import ProjectStatusButton from '@/components/ProjectStatusButton'
 import ProjectActions from '@/components/ProjectActions'
 import Link from 'next/link'
 import Dashboard from '@/components/Dashboard'
+import GuestWorkspace from '@/components/GuestWorkspace'
 
 function formatTimeLeft(dueDate: Date) {
   const deadline = new Date(
@@ -44,9 +44,9 @@ export default async function Home() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 2. ログインしていなければログイン画面へ飛ばす
+  // 2. 未ログインはゲストモードで利用可能（ブラウザを閉じるとデータ消去）
   if (!user) {
-    redirect('/login')
+    return <GuestWorkspace />
   }
 
   // 3. ユーザーがPrisma側のDBに存在するか確認し、いなければ作成（同期）
@@ -65,12 +65,23 @@ export default async function Home() {
     })
   }
 
+  const urgentDeadline = new Date()
+  urgentDeadline.setDate(urgentDeadline.getDate() + 3)
+
   // 4. ログインユーザーのプロジェクトだけを取得（期限順）
   const projects = await prisma.project.findMany({
-    where: { userId: user.id },
+    where: {
+      OR: [
+        { userId: user.id },
+        { members: { some: { userId: user.id } } },
+      ],
+    },
     include: {
       tasks: {
-        where: { status: { not: 'DONE' } },
+        where: {
+          status: { not: 'DONE' },
+          parentId: { not: null },
+        },
         orderBy: [
           { dueDate: 'asc' },
           { createdAt: 'asc' }
@@ -87,11 +98,11 @@ export default async function Home() {
   // 全タスク数を取得
   const projectsWithTaskCount = await Promise.all(
     projects.map(async (project) => {
-      const parentTaskCount = await prisma.task.count({
-        where: { projectId: project.id, parentId: null }
+      const parentRemainingCount = await prisma.task.count({
+        where: { projectId: project.id, parentId: null, status: { not: 'DONE' } }
       })
-      const subTaskCount = await prisma.task.count({
-        where: { projectId: project.id, parentId: { not: null } }
+      const subRemainingCount = await prisma.task.count({
+        where: { projectId: project.id, parentId: { not: null }, status: { not: 'DONE' } }
       })
       const parentCompletedCount = await prisma.task.count({
         where: { projectId: project.id, parentId: null, status: 'DONE' }
@@ -99,7 +110,7 @@ export default async function Home() {
       const subCompletedCount = await prisma.task.count({
         where: { projectId: project.id, parentId: { not: null }, status: 'DONE' }
       })
-      return { ...project, parentTaskCount, subTaskCount, parentCompletedCount, subCompletedCount }
+      return { ...project, parentRemainingCount, subRemainingCount, parentCompletedCount, subCompletedCount }
     })
   )
 
@@ -117,11 +128,16 @@ export default async function Home() {
   // 期限が近いタスクを取得（3日以内、子タスクのみ）
   const urgentTasks = await prisma.task.findMany({
     where: {
-      project: { userId: user.id },
+      project: {
+        OR: [
+          { userId: user.id },
+          { members: { some: { userId: user.id } } },
+        ],
+      },
       status: { not: 'DONE' },
       parentId: { not: null }, // 子タスクのみ
       dueDate: {
-        lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+        lte: urgentDeadline
       }
     },
     include: {
@@ -170,6 +186,7 @@ export default async function Home() {
 
         {projectsWithTaskCount.map((project) => {
           const nextTask = project.tasks[0]
+          const isOwner = project.userId === user.id
           
           return (
             <Link key={project.id} href={`/project/${project.id}`}>
@@ -181,9 +198,9 @@ export default async function Home() {
                       <ProjectStatusButton projectId={project.id} status={project.status} />
                     </div>
                     <p className="text-gray-200 text-sm mb-2">{project.description}</p>
-                    <ProjectDate projectId={project.id} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
+                    <ProjectDate date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
                   </div>
-                  <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} dueDate={project.dueDate} />
+                  <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} dueDate={project.dueDate} canDelete={isOwner} />
                 </div>
                 
                 {nextTask && (
@@ -199,8 +216,8 @@ export default async function Home() {
                 )}
                 
                 <div className="mt-4 flex gap-4 text-sm">
-                  <span className="text-white">📋 {project.parentTaskCount} 親タスク</span>
-                  <span className="text-white">📝 {project.subTaskCount} 子タスク</span>
+                  <span className="text-white">📋 残り親タスク {project.parentRemainingCount}</span>
+                  <span className="text-white">📝 残り子タスク {project.subRemainingCount}</span>
                   <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
                 </div>
               </div>

@@ -11,6 +11,7 @@ import TaskActions from '@/components/TaskActions'
 import { createTask } from '@/app/actions/create-actions'
 import ProjectDate from '@/components/ProjectDate'
 import ProjectStatusButton from '@/components/ProjectStatusButton'
+import ProjectMembersPanel from '@/components/ProjectMembersPanel'
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -21,9 +22,34 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     redirect('/login')
   }
 
-  const project = await prisma.project.findUnique({
-    where: { id, userId: user.id },
+  const project = await prisma.project.findFirst({
+    where: {
+      id,
+      OR: [
+        { userId: user.id },
+        { members: { some: { userId: user.id } } },
+      ],
+    },
     include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      },
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
       tasks: {
         where: { parentId: null },
         orderBy: [
@@ -46,6 +72,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     redirect('/')
   }
 
+  const isOwner = project.userId === user.id
+
   return (
     <main className="min-h-screen p-8 bg-gray-900 text-white">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -59,8 +87,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             <ProjectStatusButton projectId={project.id} status={project.status} />
           </div>
           <p className="text-gray-200 mb-3">{project.description}</p>
-          <ProjectDate projectId={project.id} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
+          <ProjectDate date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
         </div>
+
+        <ProjectMembersPanel
+          projectId={project.id}
+          owner={project.user}
+          members={project.members.map((member) => member.user)}
+          isOwner={isOwner}
+        />
 
         <div className="mb-6">
           <NewTaskForm projectId={project.id} />
@@ -78,7 +113,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                       </h3>
                       <TaskActions taskId={task.id} title={task.title} importance={task.importance} urgency={task.urgency} estimatedMinutes={task.estimatedMinutes} dueDate={task.dueDate} />
                     </div>
-                    <TaskDate taskId={task.id} date={task.dueDate} isDone={task.status === 'DONE'} />
+                    <TaskDate date={task.dueDate} isDone={task.status === 'DONE'} />
                     <div className="text-xs text-gray-300 mt-1 flex gap-2">
                       <span className="bg-blue-400 text-white px-2 py-0.5 rounded">重要: {task.importance}</span>
                       <span className="bg-pink-400 text-white px-2 py-0.5 rounded">緊急: {task.urgency}</span>
@@ -102,7 +137,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                         <div key={subTask.id} className="flex justify-between items-center bg-gray-700 p-2 rounded border border-gray-600 text-sm">
                           <div className="flex items-center gap-2 flex-grow">
                             <span className="text-gray-500">└</span>
-                            <TaskDate taskId={subTask.id} date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
+                            <TaskDate date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
                             <span className={subTask.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}>
                               {subTask.title}
                             </span>

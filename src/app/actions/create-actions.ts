@@ -4,9 +4,11 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
+import { assertProjectAccess, getCurrentUserOrThrow } from '@/lib/project-access'
 
 export async function createTask(formData: FormData) {
-  // フォームから入力値を取得
+  const authUser = await getCurrentUserOrThrow()
+
   const title = formData.get('title') as string
   const projectId = formData.get('projectId') as string
   const importance = formData.get('importance')
@@ -17,10 +19,10 @@ export async function createTask(formData: FormData) {
   const dueDateStr = formData.get('dueDate') as string
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
 
-  // バリデーション（タイトルがない場合は何もしない）
   if (!title || !projectId) return
 
-  // データベースに保存
+  await assertProjectAccess(projectId, authUser.id)
+
   await prisma.task.create({
     data: {
       title,
@@ -35,8 +37,8 @@ export async function createTask(formData: FormData) {
     },
   })
 
-  // データの更新を画面に反映させる（リロード不要にする）
   revalidatePath('/')
+  revalidatePath(`/project/${projectId}`)
 }
 
 export async function createProject(formData: FormData) {

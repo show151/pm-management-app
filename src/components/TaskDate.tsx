@@ -1,7 +1,7 @@
 // src/components/TaskDate.tsx
 'use client'
 
-export default function TaskDate({ taskId, date, isDone, isSubTask = false }: { taskId: string, date: Date | null, isDone: boolean, isSubTask?: boolean }) {
+export default function TaskDate({ date, isDone, isSubTask = false }: { date: Date | null, isDone: boolean, isSubTask?: boolean }) {
   // 日付を "YYYY-MM-DD" 形式の文字列に変換（input type="date"用）
   const dateValue = date ? new Date(date).toISOString().split('T')[0] : ''
 

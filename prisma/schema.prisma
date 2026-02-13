@@ -1,0 +1,80 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ユーザー（Supabase Authと連携するための箱）
+model User {
+  id        String    @id // SupabaseのAuth IDが入ります
+  email     String    @unique
+  name      String?
+  projects  Project[]
+  createdAt DateTime  @default(now())
+}
+
+// プロジェクト（大きな目標の単位）
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      ProjectStatus @default(ACTIVE)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  tasks       Task[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+}
+
+// タスク（PM力とメタ認知を鍛えるための核心）
+model Task {
+  id     String     @id @default(uuid())
+  title  String
+  status TaskStatus @default(TODO)
+
+  dueDate          DateTime?
+
+  // --- 1. アイゼンハワー行列用（優先順位） ---
+  importance Int @default(3) // 重要度 (1:低い - 5:高い)
+  urgency    Int @default(3) // 緊急度 (1:低い - 5:高い)
+
+  // --- 2. 予実管理（時間管理能力） ---
+  estimatedMinutes Int? // 見積もり時間（分）
+  actualMinutes    Int? // 実績時間（分）
+
+  // --- 3. メタ認知データ（内省） ---
+  confidenceScore Int?    // 着手前の自信度 (1:不安 - 5:絶対できる)
+  satisfaction    Int?    // 完了後の満足度/自己評価 (1-5)
+  reflection      String? // 振り返りメモ（なぜ遅れたか？など）
+
+  // --- 4. WBS用（親子関係） ---
+  parentId String?
+  parent   Task?   @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  children Task[]  @relation("SubTasks")
+
+  // --- リレーション ---
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// タスクの状態
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}

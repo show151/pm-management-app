@@ -16,7 +16,14 @@ import ProjectMembersPanel from '@/components/ProjectMembersPanel'
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  let user: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']['user'] | null = null
+
+  try {
+    const { data } = await supabase.auth.getSession()
+    user = data.session?.user ?? null
+  } catch {
+    user = null
+  }
 
   if (!user) {
     redirect('/login')

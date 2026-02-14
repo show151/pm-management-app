@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 type GuestTask = {
   id: string
@@ -124,9 +125,9 @@ export default function GuestWorkspace() {
           <p className="text-sm text-gray-100 mt-1">
             ログインなしで利用できます。ブラウザを閉じるとデータは消えます。
           </p>
-          <a href="/login" className="inline-block mt-3 text-sm underline text-white">
+          <Link href="/login" className="inline-block mt-3 text-sm underline text-white">
             ログインしてデータを保存する
-          </a>
+          </Link>
         </header>
 
         <section className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">

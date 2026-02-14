@@ -2,6 +2,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
+import Link from 'next/link'
 
 // ログイン処理（Server Action）
 async function signIn(formData: FormData) {
@@ -91,6 +92,15 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
               <button formAction={signUp} className="bg-gray-800 text-white font-medium px-4 py-2 rounded hover:bg-gray-700 transition-all">
                 新規登録
               </button>
+              <Link
+                href="/guest"
+                className="text-center bg-white text-blue-700 font-bold px-4 py-2 rounded hover:bg-gray-100 transition-all"
+              >
+                ゲストログイン
+              </Link>
+              <p className="text-xs text-gray-200 text-center">
+                ゲストデータはブラウザを閉じると消えます。
+              </p>
             </div>
             
             {params?.message && (

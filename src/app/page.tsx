@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 import Header from '@/components/Header'
 import NewProjectButton from '@/components/NewProjectButton'
 import ProjectDate from '@/components/ProjectDate'
@@ -9,7 +10,6 @@ import ProjectStatusButton from '@/components/ProjectStatusButton'
 import ProjectActions from '@/components/ProjectActions'
 import Link from 'next/link'
 import Dashboard from '@/components/Dashboard'
-import GuestWorkspace from '@/components/GuestWorkspace'
 
 function formatTimeLeft(dueDate: Date) {
   const deadline = new Date(
@@ -42,11 +42,18 @@ function formatTimeLeft(dueDate: Date) {
 export default async function Home() {
   // 1. Supabaseのユーザー情報を取得
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  let user: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']['user'] | null = null
 
-  // 2. 未ログインはゲストモードで利用可能（ブラウザを閉じるとデータ消去）
+  try {
+    const { data } = await supabase.auth.getSession()
+    user = data.session?.user ?? null
+  } catch {
+    user = null
+  }
+
+  // 2. 未ログインはログイン画面へ
   if (!user) {
-    return <GuestWorkspace />
+    redirect('/login')
   }
 
   // 3. ユーザーがPrisma側のDBに存在するか確認し、いなければ作成（同期）
@@ -189,12 +196,13 @@ export default async function Home() {
           const isOwner = project.userId === user.id
           
           return (
-            <Link key={project.id} href={`/project/${project.id}`}>
-              <div className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-6 rounded-xl shadow-lg border border-blue-400 hover:scale-[1.02] transition-all duration-300 cursor-pointer ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+            <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-grow">
                     <div className="flex items-center gap-3 mb-2">
-                      <h2 className={`text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
+                      <Link href={`/project/${project.id}`} className="hover:underline">
+                        <h2 className={`text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
+                      </Link>
                       <ProjectStatusButton projectId={project.id} status={project.status} />
                     </div>
                     <p className="text-gray-200 text-sm mb-2">{project.description}</p>
@@ -221,7 +229,6 @@ export default async function Home() {
                   <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
                 </div>
               </div>
-            </Link>
           )
         })}
       </div>

@@ -17,8 +17,8 @@ export default function NewTaskForm({ projectId }: { projectId: string }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-6 rounded-xl shadow-lg border border-blue-400 w-96">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-3">
+          <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-4">新しいタスク</h3>
             <form action={createTask} onSubmit={() => setIsOpen(false)}>
               {/* どのプロジェクトに追加するかを識別するための隠し項目 */}
@@ -36,11 +36,16 @@ export default function NewTaskForm({ projectId }: { projectId: string }) {
               {/* ▼ 追加: 日付入力 */}
               <input 
                 type="date" 
+                name="startDate"
+                className="w-full border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-pink-500 [color-scheme:dark]"
+              />
+              <input 
+                type="date" 
                 name="dueDate"
                 className="w-full border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-pink-500 [color-scheme:dark]"
               />
 
-              <div className="flex gap-2 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                 {/* PM力強化ポイント：重要度・緊急度・見積もりを最初に入力させる */}
                 <select name="importance" className="flex-1 border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" defaultValue="3">
                   <option value="5">重要度: 高 (5)</option>

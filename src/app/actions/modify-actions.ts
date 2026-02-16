@@ -29,15 +29,51 @@ export async function undoTask(taskId: string) {
   revalidatePath(`/project/${task.projectId}`)
 }
 
-export async function completeTask(taskId: string, actualMinutes: number, reflection?: string) {
+export async function startTask(taskId: string) {
   const authUser = await getCurrentUserOrThrow()
   const task = await assertTaskAccess(taskId, authUser.id)
 
   await prisma.task.update({
     where: { id: taskId },
+    data: { status: 'IN_PROGRESS' },
+  })
+  revalidatePath('/')
+  revalidatePath(`/project/${task.projectId}`)
+}
+
+export async function completeTask(taskId: string, actualMinutes: number, reflection?: string) {
+  const authUser = await getCurrentUserOrThrow()
+  const task = await assertTaskAccess(taskId, authUser.id)
+  const taskWithChildren = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      parentId: true,
+      children: {
+        select: {
+          status: true,
+          actualMinutes: true,
+        },
+      },
+    },
+  })
+
+  if (!taskWithChildren) {
+    throw new Error('NOT_FOUND')
+  }
+
+  const computedActualMinutes =
+    taskWithChildren.parentId === null
+      ? taskWithChildren.children.reduce((sum, child) => {
+          if (child.status !== 'DONE') return sum
+          return sum + (child.actualMinutes ?? 0)
+        }, 0)
+      : actualMinutes
+
+  await prisma.task.update({
+    where: { id: taskId },
     data: { 
       status: 'DONE', 
-      actualMinutes: actualMinutes,
+      actualMinutes: computedActualMinutes,
       reflection: reflection || null
     },
   })
@@ -82,9 +118,10 @@ export async function updateTask(taskId: string, title: string) {
   revalidatePath(`/project/${task.projectId}`)
 }
 
-export async function updateTaskDetails(taskId: string, title: string, importance: number, urgency: number, estimatedMinutes: number, dueDateStr?: string) {
+export async function updateTaskDetails(taskId: string, title: string, importance: number, urgency: number, estimatedMinutes: number, startDateStr?: string, dueDateStr?: string) {
   const authUser = await getCurrentUserOrThrow()
   const task = await assertTaskAccess(taskId, authUser.id)
+  const startDate = startDateStr ? new Date(startDateStr) : null
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
   await prisma.task.update({
     where: { id: taskId },
@@ -93,6 +130,7 @@ export async function updateTaskDetails(taskId: string, title: string, importanc
       importance,
       urgency,
       estimatedMinutes,
+      startDate,
       dueDate
     }
   })
@@ -112,14 +150,15 @@ export async function deleteProject(projectId: string) {
   revalidatePath('/')
 }
 
-export async function updateProject(projectId: string, title: string, description: string, dueDateStr?: string) {
+export async function updateProject(projectId: string, title: string, description: string, startDateStr?: string, dueDateStr?: string) {
   const authUser = await getCurrentUserOrThrow()
   await assertProjectAccess(projectId, authUser.id)
 
+  const startDate = startDateStr ? new Date(startDateStr) : null
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
   await prisma.project.update({
     where: { id: projectId },
-    data: { title, description, dueDate }
+    data: { title, description, startDate, dueDate }
   })
   revalidatePath('/')
   revalidatePath(`/project/${projectId}`)

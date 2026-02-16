@@ -10,15 +10,17 @@ type TaskActionsProps = {
   importance?: number
   urgency?: number
   estimatedMinutes?: number | null
+  startDate?: Date | null
   dueDate?: Date | null
 }
 
-export default function TaskActions({ taskId, title, importance = 3, urgency = 3, estimatedMinutes, dueDate }: TaskActionsProps) {
+export default function TaskActions({ taskId, title, importance = 3, urgency = 3, estimatedMinutes, startDate, dueDate }: TaskActionsProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(title)
   const [editImportance, setEditImportance] = useState(importance)
   const [editUrgency, setEditUrgency] = useState(urgency)
   const [editEstimatedMinutes, setEditEstimatedMinutes] = useState(estimatedMinutes || 0)
+  const [editStartDate, setEditStartDate] = useState(startDate ? new Date(startDate).toISOString().split('T')[0] : '')
   const [editDueDate, setEditDueDate] = useState(dueDate ? new Date(dueDate).toISOString().split('T')[0] : '')
 
   const handleDelete = async () => {
@@ -28,7 +30,7 @@ export default function TaskActions({ taskId, title, importance = 3, urgency = 3
 
   const handleUpdate = async () => {
     if (!editTitle.trim()) return
-    await updateTaskDetails(taskId, editTitle, editImportance, editUrgency, editEstimatedMinutes, editDueDate)
+    await updateTaskDetails(taskId, editTitle, editImportance, editUrgency, editEstimatedMinutes, editStartDate, editDueDate)
     setIsEditing(false)
   }
 
@@ -46,6 +48,16 @@ export default function TaskActions({ taskId, title, importance = 3, urgency = 3
             autoFocus
           />
           
+          <div className="mb-3">
+            <label className="text-xs text-gray-300 block mb-1">開始日</label>
+            <input
+              type="date"
+              value={editStartDate}
+              onChange={(e) => setEditStartDate(e.target.value)}
+              className="w-full border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 [color-scheme:dark]"
+            />
+          </div>
+
           <div className="mb-3">
             <label className="text-xs text-gray-300 block mb-1">期限日</label>
             <input

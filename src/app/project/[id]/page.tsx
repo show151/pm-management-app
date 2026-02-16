@@ -12,15 +12,16 @@ import { createTask } from '@/app/actions/create-actions'
 import ProjectDate from '@/components/ProjectDate'
 import ProjectStatusButton from '@/components/ProjectStatusButton'
 import ProjectMembersPanel from '@/components/ProjectMembersPanel'
+import TaskTimelineChart from '@/components/TaskTimelineChart'
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
-  let user: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']['user'] | null = null
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null = null
 
   try {
-    const { data } = await supabase.auth.getSession()
-    user = data.session?.user ?? null
+    const { data, error } = await supabase.auth.getUser()
+    user = error ? null : data.user
   } catch {
     user = null
   }
@@ -80,21 +81,35 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   }
 
   const isOwner = project.userId === user.id
+  const taskTimelineItems = project.tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    startDate: (task.startDate ?? task.createdAt).toISOString(),
+    endDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+    status: task.status,
+    children: task.children.map((subTask) => ({
+      id: subTask.id,
+      title: subTask.title,
+      startDate: (subTask.startDate ?? subTask.createdAt).toISOString(),
+      endDate: subTask.dueDate ? new Date(subTask.dueDate).toISOString() : null,
+      status: subTask.status,
+    })),
+  }))
 
   return (
-    <main className="min-h-screen p-8 bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
         <Link href="/" className="text-blue-400 hover:text-blue-300 flex items-center gap-2">
           ← プロジェクト一覧に戻る
         </Link>
 
-        <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-6 rounded-xl shadow-lg border border-blue-400">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className={`text-2xl font-bold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h1>
+        <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+            <h1 className={`text-xl sm:text-2xl font-bold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h1>
             <ProjectStatusButton projectId={project.id} status={project.status} />
           </div>
           <p className="text-gray-200 mb-3">{project.description}</p>
-          <ProjectDate date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
+          <ProjectDate startDate={project.startDate} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
         </div>
 
         <ProjectMembersPanel
@@ -104,6 +119,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           isOwner={isOwner}
         />
 
+        <TaskTimelineChart items={taskTimelineItems} />
+
         <div className="mb-6">
           <NewTaskForm projectId={project.id} />
         </div>
@@ -112,16 +129,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           {project.tasks.length > 0 ? (
             project.tasks.map((task) => (
               <div key={task.id} className="border border-blue-700 rounded-lg overflow-hidden">
-                <div className={`p-4 flex justify-between items-center transition-colors ${task.status === 'DONE' ? 'bg-gray-800 opacity-70' : 'bg-gray-900'}`}>
+                <div className={`p-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 transition-colors ${task.status === 'DONE' ? 'bg-gray-800 opacity-70' : 'bg-gray-900'}`}>
                   <div className="flex-grow">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h3 className={`font-bold text-lg ${task.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}`}>
                         {task.title}
                       </h3>
-                      <TaskActions taskId={task.id} title={task.title} importance={task.importance} urgency={task.urgency} estimatedMinutes={task.estimatedMinutes} dueDate={task.dueDate} />
+                      <TaskActions taskId={task.id} title={task.title} importance={task.importance} urgency={task.urgency} estimatedMinutes={task.estimatedMinutes} startDate={task.startDate} dueDate={task.dueDate} />
                     </div>
                     <TaskDate date={task.dueDate} isDone={task.status === 'DONE'} />
-                    <div className="text-xs text-gray-300 mt-1 flex gap-2">
+                    <div className="text-xs text-gray-300 mt-1 flex flex-wrap gap-2">
                       <span className="bg-blue-400 text-white px-2 py-0.5 rounded">重要: {task.importance}</span>
                       <span className="bg-pink-400 text-white px-2 py-0.5 rounded">緊急: {task.urgency}</span>
                       <span className="bg-gray-700 text-gray-200 px-2 py-0.5 rounded">予定: {task.estimatedMinutes}分</span>
@@ -153,7 +170,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                                 {subTask.estimatedMinutes}分
                               </span>
                             )}
-                            <TaskActions taskId={subTask.id} title={subTask.title} importance={subTask.importance} urgency={subTask.urgency} estimatedMinutes={subTask.estimatedMinutes} dueDate={subTask.dueDate} />
+                            <TaskActions taskId={subTask.id} title={subTask.title} importance={subTask.importance} urgency={subTask.urgency} estimatedMinutes={subTask.estimatedMinutes} startDate={subTask.startDate} dueDate={subTask.dueDate} />
                           </div>
                           <div className="scale-90 origin-right">
                             <TaskStatusButton 
@@ -175,9 +192,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                       ＋ サブタスクを追加
                     </summary>
                     <div className="pl-4 border-l-2 border-blue-700">
-                      <form action={createTask} className="flex gap-2 items-center">
+                      <form action={createTask} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 items-center">
                         <input type="hidden" name="projectId" value={project.id} />
                         <input type="hidden" name="parentId" value={task.id} />
+                        <input 
+                          type="date" 
+                          name="startDate" 
+                          className="border border-gray-600 bg-gray-700 text-white rounded px-1 py-1 text-xs w-28 [color-scheme:dark]" 
+                        />
                         <input 
                           type="date" 
                           name="dueDate" 
@@ -186,16 +208,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                         <input 
                           name="title" 
                           placeholder="小タスク名..." 
-                          className="border border-gray-600 bg-gray-700 text-white rounded px-2 py-1 flex-grow"
+                          className="border border-gray-600 bg-gray-700 text-white rounded px-2 py-1 sm:col-span-2 lg:col-span-1"
                           required 
                         />
                         <input 
                           name="estimatedMinutes" 
                           type="number" 
                           placeholder="分" 
-                          className="w-12 border border-gray-600 bg-gray-700 text-white rounded px-1 py-1"
+                          className="w-full border border-gray-600 bg-gray-700 text-white rounded px-1 py-1"
                         />
-                        <button type="submit" className="border-2 border-white text-white font-bold px-3 py-1 rounded hover:bg-white hover:text-blue-600 transition-all">追加</button>
+                        <button type="submit" className="border-2 border-white text-white font-bold px-3 py-1 rounded hover:bg-white hover:text-blue-600 transition-all sm:col-span-2 lg:col-span-1">追加</button>
                       </form>
                     </div>
                   </details>

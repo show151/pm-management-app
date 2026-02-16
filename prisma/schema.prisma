@@ -25,6 +25,7 @@ model Project {
   id          String   @id @default(uuid())
   title       String
   description String?
+  startDate   DateTime?
   dueDate     DateTime?
   status      ProjectStatus @default(ACTIVE)
   userId      String
@@ -58,6 +59,7 @@ model Task {
   title  String
   status TaskStatus @default(TODO)
 
+  startDate        DateTime?
   dueDate          DateTime?
 
   // --- 1. アイゼンハワー行列用（優先順位） ---

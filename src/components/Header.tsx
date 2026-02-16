@@ -5,9 +5,9 @@ export default function Header({ email }: { email: string }) {
   return (
     <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-gradient-to-r from-blue-500 to-pink-500 p-4 rounded-xl shadow-lg border border-blue-400">
       <div className="flex items-center gap-2 mb-4 md:mb-0">
-        <span className="text-2xl">🚀</span>
+        <span className="text-2xl">📝</span>
         <h1 className="text-2xl font-bold text-white tracking-tight">
-          PM-Master
+          PM-Management-App
         </h1>
       </div>
 

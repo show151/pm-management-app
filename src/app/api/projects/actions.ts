@@ -12,16 +12,19 @@ export async function createProject(formData: FormData) {
   
   const title = formData.get('title') as string
   const description = formData.get('description') as string
+  const startDateStr = formData.get('startDate') as string
   const dueDateStr = formData.get('dueDate') as string
   
   if (!title) return
   
+  const startDate = startDateStr ? new Date(startDateStr) : null
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
   
   await prisma.project.create({
     data: {
       title,
       description: description || '',
+      startDate,
       dueDate,
       userId: user.id
     }
@@ -30,11 +33,12 @@ export async function createProject(formData: FormData) {
   revalidatePath('/')
 }
 
-export async function updateProject(projectId: string, title: string, description: string, dueDateStr?: string) {
+export async function updateProject(projectId: string, title: string, description: string, startDateStr?: string, dueDateStr?: string) {
+  const startDate = startDateStr ? new Date(startDateStr) : null
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
   await prisma.project.update({
     where: { id: projectId },
-    data: { title, description, dueDate }
+    data: { title, description, startDate, dueDate }
   })
   revalidatePath('/')
 }

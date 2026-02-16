@@ -10,6 +10,7 @@ import ProjectStatusButton from '@/components/ProjectStatusButton'
 import ProjectActions from '@/components/ProjectActions'
 import Link from 'next/link'
 import Dashboard from '@/components/Dashboard'
+import TimelineChart from '@/components/TimelineChart'
 
 function formatTimeLeft(dueDate: Date) {
   const deadline = new Date(
@@ -42,11 +43,11 @@ function formatTimeLeft(dueDate: Date) {
 export default async function Home() {
   // 1. Supabaseのユーザー情報を取得
   const supabase = await createClient()
-  let user: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']['user'] | null = null
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null = null
 
   try {
-    const { data } = await supabase.auth.getSession()
-    user = data.session?.user ?? null
+    const { data, error } = await supabase.auth.getUser()
+    user = error ? null : data.user
   } catch {
     user = null
   }
@@ -132,6 +133,14 @@ export default async function Home() {
     }))
   )
 
+  const projectTimelineItems = projectsWithTaskCount.map((project) => ({
+    id: project.id,
+    title: project.title,
+    startDate: project.startDate ?? project.createdAt,
+    endDate: project.dueDate,
+    status: project.status,
+  }))
+
   // 期限が近いタスクを取得（3日以内、子タスクのみ）
   const urgentTasks = await prisma.task.findMany({
     where: {
@@ -155,17 +164,22 @@ export default async function Home() {
   })
 
   return (
-    <main className="min-h-screen p-8 bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
         
         <Header email={user?.email || 'Guest'} />
 
         {/* ↓ ここにダッシュボードを配置 */}
         <Dashboard tasks={allTasksForDashboard} />
+        <TimelineChart
+          title="プロジェクトタイムライン"
+          emptyMessage="表示できるプロジェクトがありません。"
+          items={projectTimelineItems}
+        />
 
-        <div className="flex justify-between items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           {urgentTasks.length > 0 && (
-            <div className="flex-grow bg-red-900 bg-opacity-50 border border-red-600 rounded-lg p-4">
+            <div className="w-full flex-grow bg-red-900 bg-opacity-50 border border-red-600 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xl">⚠️</span>
                 <h3 className="text-sm font-bold text-white">期限が近いタスク ({urgentTasks.length})</h3>
@@ -177,7 +191,7 @@ export default async function Home() {
                   
                   return (
                     <Link key={task.id} href={`/project/${task.projectId}`}>
-                      <div className="text-xs text-white hover:text-gray-200 flex items-center gap-2">
+                      <div className="text-xs text-white hover:text-gray-200 flex flex-wrap items-center gap-2">
                         <span className="font-medium">{task.title}</span>
                         <span className="text-red-300">({timeDisplay})</span>
                         <span className="text-gray-400">- {task.project.title}</span>
@@ -188,7 +202,9 @@ export default async function Home() {
               </div>
             </div>
           )}
-          <NewProjectButton />
+          <div className="w-full sm:w-auto">
+            <NewProjectButton />
+          </div>
         </div>
 
         {projectsWithTaskCount.map((project) => {
@@ -196,19 +212,19 @@ export default async function Home() {
           const isOwner = project.userId === user.id
           
           return (
-            <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
-                <div className="flex justify-between items-start mb-3">
+            <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
                   <div className="flex-grow">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                       <Link href={`/project/${project.id}`} className="hover:underline">
-                        <h2 className={`text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
+                        <h2 className={`text-lg sm:text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
                       </Link>
                       <ProjectStatusButton projectId={project.id} status={project.status} />
                     </div>
                     <p className="text-gray-200 text-sm mb-2">{project.description}</p>
-                    <ProjectDate date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
+                    <ProjectDate startDate={project.startDate} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
                   </div>
-                  <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} dueDate={project.dueDate} canDelete={isOwner} />
+                  <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
                 </div>
                 
                 {nextTask && (
@@ -223,7 +239,7 @@ export default async function Home() {
                   </div>
                 )}
                 
-                <div className="mt-4 flex gap-4 text-sm">
+                <div className="mt-4 flex flex-wrap gap-3 text-sm">
                   <span className="text-white">📋 残り親タスク {project.parentRemainingCount}</span>
                   <span className="text-white">📝 残り子タスク {project.subRemainingCount}</span>
                   <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>

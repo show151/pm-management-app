@@ -16,7 +16,9 @@ export async function createTask(formData: FormData) {
   const estimatedMinutes = formData.get('estimatedMinutes')
   const parentId = formData.get('parentId') as string | null
 
+  const startDateStr = formData.get('startDate') as string
   const dueDateStr = formData.get('dueDate') as string
+  const startDate = startDateStr ? new Date(startDateStr) : null
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
 
   if (!title || !projectId) return
@@ -32,6 +34,7 @@ export async function createTask(formData: FormData) {
       importance: Number(importance) || 3,
       urgency: Number(urgency) || 3,
       estimatedMinutes: Number(estimatedMinutes) || 0,
+      startDate,
       dueDate: dueDate,
       status: 'TODO',
     },
@@ -49,16 +52,19 @@ export async function createProject(formData: FormData) {
   
   const title = formData.get('title') as string
   const description = formData.get('description') as string
+  const startDateStr = formData.get('startDate') as string
   const dueDateStr = formData.get('dueDate') as string
   
   if (!title) return
   
+  const startDate = startDateStr ? new Date(startDateStr) : null
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
   
   await prisma.project.create({
     data: {
       title,
       description: description || '',
+      startDate,
       dueDate,
       userId: user.id
     }

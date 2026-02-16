@@ -59,6 +59,8 @@ export default async function Home() {
 
   // 3. ユーザーがPrisma側のDBに存在するか確認し、いなければ作成（同期）
   // ※AuthのIDと、PrismaのUserテーブルのIDを一致させます
+  const metadataName = typeof user.user_metadata?.name === 'string' ? user.user_metadata.name.trim() : ''
+  const fallbackName = user.email?.split('@')[0] || 'New User'
   let dbUser = await prisma.user.findUnique({
     where: { id: user.id }
   })
@@ -68,8 +70,13 @@ export default async function Home() {
       data: {
         id: user.id, // Supabase AuthのUUIDを使う
         email: user.email!,
-        name: 'New User', // 初期名
+        name: metadataName || fallbackName,
       }
+    })
+  } else if (!dbUser.name && metadataName) {
+    dbUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { name: metadataName },
     })
   }
 
@@ -167,7 +174,7 @@ export default async function Home() {
     <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
       <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
         
-        <Header email={user?.email || 'Guest'} />
+        <Header email={user?.email || 'Guest'} name={dbUser?.name || fallbackName} />
 
         {/* ↓ ここにダッシュボードを配置 */}
         <Dashboard tasks={allTasksForDashboard} />

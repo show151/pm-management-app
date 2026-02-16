@@ -1,6 +1,6 @@
 'use client'
 
-import { addProjectMember, removeProjectMember } from '@/app/actions/modify-actions'
+import { addProjectMember, removeProjectMember, searchProjectShareCandidates } from '@/app/actions/modify-actions'
 import { useState, useTransition } from 'react'
 
 type Member = {
@@ -17,16 +17,40 @@ type Props = {
 }
 
 export default function ProjectMembersPanel({ projectId, owner, members, isOwner }: Props) {
-  const [email, setEmail] = useState('')
+  const [query, setQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<Member[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const handleAddMember = () => {
+  const handleAddMemberByEmail = () => {
     startTransition(async () => {
-      const result = await addProjectMember(projectId, email)
+      const result = await addProjectMember(projectId, query)
       setMessage(result.message)
       if (result.ok) {
-        setEmail('')
+        setQuery('')
+        setSearchResults([])
+      }
+    })
+  }
+
+  const handleSearch = () => {
+    startTransition(async () => {
+      const result = await searchProjectShareCandidates(projectId, query)
+      if (!result.ok) {
+        setMessage('候補検索に失敗しました。')
+        return
+      }
+      setSearchResults(result.candidates)
+      setMessage(result.candidates.length === 0 ? '候補が見つかりませんでした。' : null)
+    })
+  }
+
+  const handleAddFromCandidate = (candidate: Member) => {
+    startTransition(async () => {
+      const result = await addProjectMember(projectId, candidate.email)
+      setMessage(result.message)
+      if (result.ok) {
+        setSearchResults((prev) => prev.filter((user) => user.id !== candidate.id))
       }
     })
   }
@@ -73,23 +97,54 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
       )}
 
       {isOwner && (
-        <div className="flex gap-2 pt-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="追加するユーザーのメール"
-            className="flex-1 border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm"
-          />
-          <button
-            type="button"
-            onClick={handleAddMember}
-            disabled={isPending || !email.trim()}
-            className="border-2 border-white text-white font-bold px-3 py-2 text-xs rounded hover:bg-white hover:text-blue-600 transition-all disabled:opacity-50"
-          >
-            追加
-          </button>
-        </div>
+        <>
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="名前またはメールで検索"
+              className="flex-1 border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={handleSearch}
+              disabled={isPending || !query.trim()}
+              className="border border-white text-white font-bold px-3 py-2 text-xs rounded hover:bg-white hover:text-blue-600 transition-all disabled:opacity-50"
+            >
+              検索
+            </button>
+            <button
+              type="button"
+              onClick={handleAddMemberByEmail}
+              disabled={isPending || !query.trim()}
+              className="border-2 border-white text-white font-bold px-3 py-2 text-xs rounded hover:bg-white hover:text-blue-600 transition-all disabled:opacity-50"
+            >
+              メールで直接追加
+            </button>
+          </div>
+
+          {searchResults.length > 0 && (
+            <div className="space-y-2">
+              {searchResults.map((candidate) => (
+                <div key={candidate.id} className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded px-3 py-2">
+                  <div className="text-sm text-gray-100">
+                    <p className="font-medium">{candidate.name || '(名前未設定)'}</p>
+                    <p className="text-xs text-gray-400">{candidate.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddFromCandidate(candidate)}
+                    disabled={isPending}
+                    className="text-xs border border-white text-white px-2 py-1 rounded hover:bg-white hover:text-blue-600 transition-all"
+                  >
+                    追加
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {message && <p className="text-xs text-gray-300">{message}</p>}

@@ -242,6 +242,53 @@ export async function addProjectMember(projectId: string, email: string) {
   return { ok: true, message: `${targetUser.email} をメンバーに追加しました。` }
 }
 
+export async function searchProjectShareCandidates(projectId: string, query: string) {
+  const authUser = await getCurrentUserOrThrow()
+  await assertProjectOwner(projectId, authUser.id)
+
+  const normalizedQuery = query.trim()
+  if (!normalizedQuery) {
+    return { ok: true, candidates: [] as Array<{ id: string; email: string; name: string | null }> }
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      userId: true,
+      members: {
+        select: { userId: true },
+      },
+    },
+  })
+
+  if (!project) {
+    return { ok: false, candidates: [] as Array<{ id: string; email: string; name: string | null }> }
+  }
+
+  const excludedUserIds = [project.userId, ...project.members.map((member) => member.userId)]
+
+  const candidates = await prisma.user.findMany({
+    where: {
+      id: { notIn: excludedUserIds },
+      OR: [
+        { name: { contains: normalizedQuery, mode: 'insensitive' } },
+        { email: { contains: normalizedQuery, mode: 'insensitive' } },
+      ],
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+    },
+    take: 10,
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+
+  return { ok: true, candidates }
+}
+
 export async function removeProjectMember(projectId: string, memberUserId: string) {
   const authUser = await getCurrentUserOrThrow()
   await assertProjectOwner(projectId, authUser.id)
@@ -273,4 +320,31 @@ export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')
+}
+
+export async function updateUserName(name: string) {
+  const authUser = await getCurrentUserOrThrow()
+  const normalized = name.trim()
+
+  if (!normalized) {
+    return { ok: false, message: 'ユーザーネームを入力してください。' }
+  }
+
+  await prisma.user.upsert({
+    where: { id: authUser.id },
+    update: { name: normalized },
+    create: {
+      id: authUser.id,
+      email: authUser.email ?? '',
+      name: normalized,
+    },
+  })
+
+  const supabase = await createClient()
+  await supabase.auth.updateUser({
+    data: { name: normalized },
+  })
+
+  revalidatePath('/')
+  return { ok: true, message: 'ユーザーネームを更新しました。' }
 }

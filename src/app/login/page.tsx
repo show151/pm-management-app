@@ -29,12 +29,18 @@ async function signUp(formData: FormData) {
   const origin = (await headers()).get('origin')
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const usernameInput = (formData.get('username') as string | null)?.trim() ?? ''
   const supabase = await createClient()
+  const fallbackName = email?.split('@')[0] || 'New User'
+  const username = usernameInput || fallbackName
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      data: {
+        name: username,
+      },
       emailRedirectTo: `${origin}/auth/callback`, // 本来はメール確認が必要ですが今回は省略
     },
   })
@@ -64,6 +70,15 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           </div>
           
           <form className="flex flex-col gap-4">
+            <div>
+              <label className="text-sm font-medium text-white block mb-2" htmlFor="username">ユーザーネーム（新規登録時）</label>
+              <input
+                className="w-full rounded-md px-4 py-2 bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                name="username"
+                placeholder="例: show5"
+              />
+            </div>
+
             <div>
               <label className="text-sm font-medium text-white block mb-2" htmlFor="email">メールアドレス</label>
               <input

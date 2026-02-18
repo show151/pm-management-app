@@ -134,19 +134,8 @@ https://pm-management-app.vercel.app/
 
 ### システム構成図
 
-```mermaid
-flowchart TD
-  A[Browser]
-  B[Next.js App]
-  C[Supabase Auth]
-  D[Prisma]
-  E[(PostgreSQL)]
-
-  A --> B
-  B --> C
-  B --> D
-  D --> E
-```
+<p align="center"><img src="./images/flowChart.png" alt="flowChart" width="600" /></p>
+<p align="center"><sub>図10. システム構成図</sub></p>
 
 ---
 

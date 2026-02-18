@@ -168,7 +168,7 @@ flowchart TD
 
 ### 苦労した点
 
-1. Prisma スキーマ更新時の Client 不整合（`completedAt` 追加時）
+1. Prisma スキーマ更新時の Client 不整合への対応
 2. SSR と認証状態の同期
 3. 操作ボタンを維持しつつ、カード全体クリック導線を両立
 
@@ -212,8 +212,6 @@ npx prisma migrate dev
 npx prisma generate
 npm run dev
 ```
-
-`completedAt` を使うため、マイグレーション未適用だと実行時エラーになります。
 
 ### 本番ビルド
 

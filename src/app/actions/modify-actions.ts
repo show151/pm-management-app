@@ -23,7 +23,6 @@ export async function undoTask(taskId: string) {
     data: { 
       status: 'TODO',
       actualMinutes: null, // 実績時間もリセット
-      completedAt: null,
     },
   })
   revalidatePath('/')
@@ -38,7 +37,6 @@ export async function startTask(taskId: string) {
     where: { id: taskId },
     data: {
       status: 'IN_PROGRESS',
-      completedAt: null,
     },
   })
   revalidatePath('/')
@@ -79,7 +77,6 @@ export async function completeTask(taskId: string, actualMinutes: number, reflec
       status: 'DONE', 
       actualMinutes: computedActualMinutes,
       reflection: reflection || null,
-      completedAt: new Date(),
     },
   })
   revalidatePath('/')

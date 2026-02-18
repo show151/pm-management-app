@@ -9,10 +9,6 @@
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql&logoColor=white" />
 </p>
 
-<p align="center">
-  <img alt="Tech Logos" src="https://skillicons.dev/icons?i=nextjs,react,ts,tailwind,prisma,supabase,postgres,vercel,vscode,git&perline=10" />
-</p>
-
 ## 概要
 
 **PM Management App** は、プロジェクト管理とタスク実行ログ（見積/実績・振り返り）を一体化した Web アプリケーションです。

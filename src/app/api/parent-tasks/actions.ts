@@ -61,7 +61,8 @@ export async function completeParentTask(taskId: string, actualMinutes: number, 
     data: { 
       status: 'DONE', 
       actualMinutes,
-      reflection: reflection || null
+      reflection: reflection || null,
+      completedAt: new Date(),
     },
   })
   revalidatePath('/')
@@ -73,7 +74,8 @@ export async function undoParentTask(taskId: string) {
     where: { id: taskId },
     data: { 
       status: 'TODO',
-      actualMinutes: null
+      actualMinutes: null,
+      completedAt: null,
     },
   })
   revalidatePath('/')

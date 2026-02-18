@@ -148,6 +148,9 @@ export default async function Home() {
     status: project.status,
   }))
 
+  const ownProjects = projectsWithTaskCount.filter((project) => project.userId === user.id)
+  const sharedProjects = projectsWithTaskCount.filter((project) => project.userId !== user.id)
+
   // 期限が近いタスクを取得（3日以内、子タスクのみ）
   const urgentTasks = await prisma.task.findMany({
     where: {
@@ -209,51 +212,126 @@ export default async function Home() {
               </div>
             </div>
           )}
-          <div className="w-full sm:w-auto">
+          <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+            <Link
+              href="/dashboard"
+              className="flex-1 sm:flex-none border-2 border-white text-white font-bold px-4 py-2 rounded hover:bg-white hover:text-blue-600 transition-all text-sm text-center"
+            >
+              📊 ダッシュボード
+            </Link>
             <NewProjectButton />
           </div>
         </div>
 
-        {projectsWithTaskCount.map((project) => {
-          const nextTask = project.tasks[0]
-          const isOwner = project.userId === user.id
-          
-          return (
-            <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
-                  <div className="flex-grow">
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                      <Link href={`/project/${project.id}`} className="hover:underline">
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-white">👤 個人プロジェクト ({ownProjects.length})</h2>
+          {ownProjects.length === 0 ? (
+            <p className="text-sm text-gray-400">個人プロジェクトはありません。</p>
+          ) : (
+            ownProjects.map((project) => {
+              const nextTask = project.tasks[0]
+              const isOwner = project.userId === user.id
+
+              return (
+                <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                  <Link
+                    href={`/project/${project.id}`}
+                    aria-label={`${project.title} を開く`}
+                    className="absolute inset-0 rounded-xl z-10"
+                  />
+                  <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                    <div className="flex-grow">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                         <h2 className={`text-lg sm:text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
-                      </Link>
-                      <ProjectStatusButton projectId={project.id} status={project.status} />
+                        <div className="pointer-events-auto">
+                          <ProjectStatusButton projectId={project.id} status={project.status} />
+                        </div>
+                      </div>
+                      <p className="text-gray-200 text-sm mb-2">{project.description}</p>
+                      <ProjectDate startDate={project.startDate} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
                     </div>
-                    <p className="text-gray-200 text-sm mb-2">{project.description}</p>
-                    <ProjectDate startDate={project.startDate} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
+                    <div className="pointer-events-auto">
+                      <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                    </div>
                   </div>
-                  <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
-                </div>
-                
-                {nextTask && (
-                  <div className="mt-4 p-3 bg-gray-800 bg-opacity-50 rounded-lg border border-gray-700">
-                    <p className="text-xs text-gray-300 mb-1">次のタスク:</p>
-                    <p className="text-sm text-white font-medium">{nextTask.title}</p>
-                    {nextTask.dueDate && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        📅 {new Date(nextTask.dueDate).toLocaleDateString('ja-JP')} ({formatTimeLeft(nextTask.dueDate)})
-                      </p>
-                    )}
+
+                  {nextTask && (
+                    <div className="pointer-events-none relative z-20 mt-4 p-3 bg-gray-800 bg-opacity-50 rounded-lg border border-gray-700">
+                      <p className="text-xs text-gray-300 mb-1">次のタスク:</p>
+                      <p className="text-sm text-white font-medium">{nextTask.title}</p>
+                      {nextTask.dueDate && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          📅 {new Date(nextTask.dueDate).toLocaleDateString('ja-JP')} ({formatTimeLeft(nextTask.dueDate)})
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="pointer-events-none relative z-20 mt-4 flex flex-wrap gap-3 text-sm">
+                    <span className="text-white">📋 残り親タスク {project.parentRemainingCount}</span>
+                    <span className="text-white">📝 残り子タスク {project.subRemainingCount}</span>
+                    <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
                   </div>
-                )}
-                
-                <div className="mt-4 flex flex-wrap gap-3 text-sm">
-                  <span className="text-white">📋 残り親タスク {project.parentRemainingCount}</span>
-                  <span className="text-white">📝 残り子タスク {project.subRemainingCount}</span>
-                  <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
                 </div>
-              </div>
-          )
-        })}
+              )
+            })
+          )}
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-white">🤝 共有プロジェクト ({sharedProjects.length})</h2>
+          {sharedProjects.length === 0 ? (
+            <p className="text-sm text-gray-400">共有されたプロジェクトはありません。</p>
+          ) : (
+            sharedProjects.map((project) => {
+              const nextTask = project.tasks[0]
+              const isOwner = project.userId === user.id
+
+              return (
+                <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                  <Link
+                    href={`/project/${project.id}`}
+                    aria-label={`${project.title} を開く`}
+                    className="absolute inset-0 rounded-xl z-10"
+                  />
+                  <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                    <div className="flex-grow">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h2 className={`text-lg sm:text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
+                        <div className="pointer-events-auto">
+                          <ProjectStatusButton projectId={project.id} status={project.status} />
+                        </div>
+                      </div>
+                      <p className="text-gray-200 text-sm mb-2">{project.description}</p>
+                      <ProjectDate startDate={project.startDate} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
+                    </div>
+                    <div className="pointer-events-auto">
+                      <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                    </div>
+                  </div>
+
+                  {nextTask && (
+                    <div className="pointer-events-none relative z-20 mt-4 p-3 bg-gray-800 bg-opacity-50 rounded-lg border border-gray-700">
+                      <p className="text-xs text-gray-300 mb-1">次のタスク:</p>
+                      <p className="text-sm text-white font-medium">{nextTask.title}</p>
+                      {nextTask.dueDate && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          📅 {new Date(nextTask.dueDate).toLocaleDateString('ja-JP')} ({formatTimeLeft(nextTask.dueDate)})
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="pointer-events-none relative z-20 mt-4 flex flex-wrap gap-3 text-sm">
+                    <span className="text-white">📋 残り親タスク {project.parentRemainingCount}</span>
+                    <span className="text-white">📝 残り子タスク {project.subRemainingCount}</span>
+                    <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </section>
       </div>
     </main>
   )

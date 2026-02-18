@@ -13,6 +13,7 @@ import ProjectDate from '@/components/ProjectDate'
 import ProjectStatusButton from '@/components/ProjectStatusButton'
 import ProjectMembersPanel from '@/components/ProjectMembersPanel'
 import TaskTimelineChart from '@/components/TaskTimelineChart'
+import CloseDetailsButton from '@/components/CloseDetailsButton'
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -99,9 +100,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   return (
     <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
       <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-        <Link href="/" className="text-blue-400 hover:text-blue-300 flex items-center gap-2">
-          ← プロジェクト一覧に戻る
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-blue-400 hover:text-blue-300 flex items-center gap-2">
+            ← プロジェクト一覧に戻る
+          </Link>
+        </div>
 
         <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
@@ -217,7 +220,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                           placeholder="分" 
                           className="w-full border border-gray-600 bg-gray-700 text-white rounded px-1 py-1"
                         />
-                        <button type="submit" className="border-2 border-white text-white font-bold px-3 py-1 rounded hover:bg-white hover:text-blue-600 transition-all sm:col-span-2 lg:col-span-1">追加</button>
+                        <div className="sm:col-span-2 lg:col-span-1 flex gap-2">
+                          <button type="submit" className="flex-1 border-2 border-white text-white font-bold px-3 py-1 rounded hover:bg-white hover:text-blue-600 transition-all">追加</button>
+                          <CloseDetailsButton className="flex-1 border border-gray-500 text-gray-200 font-bold px-3 py-1 rounded hover:bg-gray-700 transition-all text-center">
+                            キャンセル
+                          </CloseDetailsButton>
+                        </div>
                       </form>
                     </div>
                   </details>

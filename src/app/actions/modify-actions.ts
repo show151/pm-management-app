@@ -22,7 +22,8 @@ export async function undoTask(taskId: string) {
     where: { id: taskId },
     data: { 
       status: 'TODO',
-      actualMinutes: null // 実績時間もリセット
+      actualMinutes: null, // 実績時間もリセット
+      completedAt: null,
     },
   })
   revalidatePath('/')
@@ -35,7 +36,10 @@ export async function startTask(taskId: string) {
 
   await prisma.task.update({
     where: { id: taskId },
-    data: { status: 'IN_PROGRESS' },
+    data: {
+      status: 'IN_PROGRESS',
+      completedAt: null,
+    },
   })
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
@@ -74,7 +78,8 @@ export async function completeTask(taskId: string, actualMinutes: number, reflec
     data: { 
       status: 'DONE', 
       actualMinutes: computedActualMinutes,
-      reflection: reflection || null
+      reflection: reflection || null,
+      completedAt: new Date(),
     },
   })
   revalidatePath('/')

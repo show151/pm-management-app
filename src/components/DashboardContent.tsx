@@ -194,7 +194,7 @@ export default function DashboardContent({
         {/* 完了タスク数の詳細表示 */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
           <h3 className="font-bold text-white mb-3">📈 完了タスク統計</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-gray-700 p-3 rounded-lg text-center border border-gray-600">
               <p className="text-xs text-gray-300 mb-1">完了親タスク数</p>
               <p className="text-2xl font-black text-blue-400">{completedParentCount}</p>

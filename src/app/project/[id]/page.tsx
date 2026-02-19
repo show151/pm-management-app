@@ -157,15 +157,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   />
                 </div>
 
-                <div className="bg-gray-800 p-3 border-t border-gray-600 pl-8">
+                <div className="bg-gray-800 p-3 sm:pl-8 border-t border-gray-600">
                   {task.children.length > 0 && (
                     <div className="space-y-2 mb-3">
                       {task.children.map((subTask) => (
-                        <div key={subTask.id} className="flex justify-between items-center bg-gray-700 p-2 rounded border border-gray-600 text-sm">
-                          <div className="flex items-center gap-2 flex-grow">
+                        <div key={subTask.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-gray-700 p-2 rounded border border-gray-600 text-sm">
+                          <div className="flex items-center gap-2 flex-grow min-w-0">
                             <span className="text-gray-500">└</span>
                             <TaskDate date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
-                            <span className={subTask.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}>
+                            <span className={`min-w-0 break-words ${subTask.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}`}>
                               {subTask.title}
                             </span>
                             {subTask.estimatedMinutes && (
@@ -175,7 +175,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                             )}
                             <TaskActions taskId={subTask.id} title={subTask.title} importance={subTask.importance} urgency={subTask.urgency} estimatedMinutes={subTask.estimatedMinutes} startDate={subTask.startDate} dueDate={subTask.dueDate} />
                           </div>
-                          <div className="scale-90 origin-right">
+                          <div className="scale-90 sm:origin-right self-end sm:self-auto">
                             <TaskStatusButton 
                               taskId={subTask.id} 
                               status={subTask.status} 
@@ -201,12 +201,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                         <input 
                           type="date" 
                           name="startDate" 
-                          className="border border-gray-600 bg-gray-700 text-white rounded px-1 py-1 text-xs w-28 [color-scheme:dark]" 
+                          className="border border-gray-600 bg-gray-700 text-white rounded px-1 py-1 text-xs w-full sm:w-28 [color-scheme:dark]" 
                         />
                         <input 
                           type="date" 
                           name="dueDate" 
-                          className="border border-gray-600 bg-gray-700 text-white rounded px-1 py-1 text-xs w-28 [color-scheme:dark]" 
+                          className="border border-gray-600 bg-gray-700 text-white rounded px-1 py-1 text-xs w-full sm:w-28 [color-scheme:dark]" 
                         />
                         <input 
                           name="title" 

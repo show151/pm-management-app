@@ -125,11 +125,12 @@ https://pm-management-app.vercel.app/
 
 ### 開発・デプロイ
 
+- VScode
 - ESLint
-- Vercel（想定）
+- Vercel
 
 <p align="left">
-  <img alt="Tooling Logos" src="https://skillicons.dev/icons?i=vercel,vscode,git&perline=8" />
+  <img alt="Tooling Logos" src="https://skillicons.dev/icons?i=vercel,vscode&perline=8" />
 </p>
 
 ### システム構成図

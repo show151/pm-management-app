@@ -167,8 +167,8 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
         </div>
         
         {showReflection && reflection && typeof document !== 'undefined' && createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-3">
-            <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto">
+            <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto">
               <h3 className="text-xl font-bold text-white mb-4">振り返り</h3>
               <div className="w-full border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm mb-4">
                 <p className="text-white whitespace-pre-wrap">{reflection}</p>
@@ -192,8 +192,8 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
   return (
     <div className="relative">
       {isInputting && !isSubTask && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-3">
-          <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto">
+          <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h3 className="text-xl font-bold text-white mb-4">タスクの振り返り</h3>
             
             <p className="text-sm text-white mb-3">

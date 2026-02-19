@@ -37,8 +37,8 @@ export default function UserNameEditor({ currentName }: Props) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-3">
-          <div className="w-full max-w-sm bg-gradient-to-br from-blue-500 to-pink-500 p-5 rounded-xl border border-blue-400">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto">
+          <div className="w-full max-w-sm bg-gradient-to-br from-blue-500 to-pink-500 p-5 rounded-xl border border-blue-400 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h3 className="text-lg font-bold text-white mb-3">ユーザーネーム編集</h3>
             <input
               value={name}

@@ -25,7 +25,7 @@ export default function ProjectActions({ projectId, title, description, startDat
 
   if (isEditing) {
     return (
-      <div className="absolute top-2 right-2 sm:top-6 sm:right-6 p-3 sm:p-4 bg-gray-800 rounded-lg border border-gray-600 w-[calc(100vw-3rem)] max-w-sm z-10" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute top-2 right-2 sm:top-6 sm:right-6 p-3 sm:p-4 bg-gray-800 rounded-lg border border-gray-600 w-[calc(100vw-2rem)] max-w-sm max-h-[calc(100vh-2rem)] overflow-y-auto z-30" onClick={(e) => e.stopPropagation()}>
         <input
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}

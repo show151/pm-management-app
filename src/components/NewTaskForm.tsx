@@ -17,8 +17,8 @@ export default function NewTaskForm({ projectId }: { projectId: string }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-3">
-          <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto">
+          <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h3 className="text-xl font-bold text-white mb-4">新しいタスク</h3>
             <form action={createTask} onSubmit={() => setIsOpen(false)}>
               {/* どのプロジェクトに追加するかを識別するための隠し項目 */}

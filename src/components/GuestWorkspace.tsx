@@ -118,7 +118,7 @@ export default function GuestWorkspace() {
   }
 
   return (
-    <main className="min-h-screen p-8 bg-gray-900 text-white">
+    <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
       <div className="max-w-4xl mx-auto space-y-6">
         <header className="bg-gradient-to-r from-blue-500 to-pink-500 p-4 rounded-xl border border-blue-400">
           <h1 className="text-2xl font-bold">PM-Master (ゲストモード)</h1>
@@ -154,7 +154,7 @@ export default function GuestWorkspace() {
           </button>
         </section>
 
-        <section className="grid grid-cols-2 gap-3">
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm">
             総タスク数: <span className="font-bold">{totalTasks}</span>
           </div>
@@ -172,7 +172,7 @@ export default function GuestWorkspace() {
             const doneCount = project.tasks.filter((task) => task.done).length
             return (
               <div key={project.id} className="bg-gradient-to-br from-blue-500 to-pink-500 p-5 rounded-xl border border-blue-400">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
                     <h3 className="text-xl font-bold">{project.title}</h3>
                     {project.description && <p className="text-sm text-gray-100 mt-1">{project.description}</p>}
@@ -189,7 +189,7 @@ export default function GuestWorkspace() {
                   </button>
                 </div>
 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex flex-col sm:flex-row gap-2">
                   <input
                     value={taskInputs[project.id] || ''}
                     onChange={(e) => setTaskInputs((prev) => ({ ...prev, [project.id]: e.target.value }))}

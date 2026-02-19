@@ -36,8 +36,8 @@ export default function TaskActions({ taskId, title, importance = 3, urgency = 3
 
   if (isEditing) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setIsEditing(false)}>
-        <div className="bg-gray-800 p-6 rounded-xl border border-gray-600 w-96" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto" onClick={() => setIsEditing(false)}>
+        <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-600 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-lg font-bold text-white mb-4">タスク編集</h3>
           
           <input

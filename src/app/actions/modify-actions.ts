@@ -252,6 +252,7 @@ export async function searchProjectShareCandidates(projectId: string, query: str
   if (!normalizedQuery) {
     return { ok: true, candidates: [] as Array<{ id: string; email: string; name: string | null }> }
   }
+  const terms = normalizedQuery.split(/\s+/).filter(Boolean)
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -272,10 +273,12 @@ export async function searchProjectShareCandidates(projectId: string, query: str
   const candidates = await prisma.user.findMany({
     where: {
       id: { notIn: excludedUserIds },
-      OR: [
-        { name: { contains: normalizedQuery, mode: 'insensitive' } },
-        { email: { contains: normalizedQuery, mode: 'insensitive' } },
-      ],
+      AND: terms.map((term) => ({
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { email: { contains: term, mode: 'insensitive' } },
+        ],
+      })),
     },
     select: {
       id: true,

@@ -140,7 +140,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                       </h3>
                       <TaskActions taskId={task.id} title={task.title} importance={task.importance} urgency={task.urgency} estimatedMinutes={task.estimatedMinutes} startDate={task.startDate} dueDate={task.dueDate} isSubTask={false} />
                     </div>
-                    <TaskDate date={task.dueDate} isDone={task.status === 'DONE'} />
+                    <TaskDate startDate={task.startDate} date={task.dueDate} isDone={task.status === 'DONE'} />
                     <div className="text-xs text-gray-300 mt-1 flex flex-wrap gap-2">
                       <span className="bg-blue-400 text-white px-2 py-0.5 rounded">重要: {task.importance}</span>
                       <span className="bg-pink-400 text-white px-2 py-0.5 rounded">緊急: {task.urgency}</span>

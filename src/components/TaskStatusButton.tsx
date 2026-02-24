@@ -152,14 +152,14 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
           <button
             onClick={handleUndo}
             disabled={isPending}
-            className="text-xs bg-green-700 text-white border border-green-600 px-3 py-1 rounded hover:bg-red-700 hover:border-red-600 transition-colors"
+            className="btn text-xs border-emerald-300/80 bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/35"
           >
             {isPending ? '...' : `✓ 完了 (実績: ${actualMinutes}分)`}
           </button>
           {reflection && (
             <button
               onClick={() => setShowReflection(true)}
-              className="text-xs bg-blue-700 text-white border border-blue-600 px-2 py-1 rounded hover:bg-blue-600 transition-colors"
+              className="btn btn-primary text-xs"
             >
               📝 振り返り
             </button>
@@ -167,16 +167,16 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
         </div>
         
         {showReflection && reflection && typeof document !== 'undefined' && createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto">
-            <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <div className="modal-backdrop">
+            <div className="modal-card max-h-[calc(100vh-2rem)] overflow-y-auto">
               <h3 className="text-xl font-bold text-white mb-4">振り返り</h3>
-              <div className="w-full border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm mb-4">
+              <div className="form-control mb-4">
                 <p className="text-white whitespace-pre-wrap">{reflection}</p>
               </div>
               <div className="flex gap-2 justify-end">
                 <button
                   onClick={() => setShowReflection(false)}
-                  className="px-4 py-2 text-sm text-white hover:bg-white hover:bg-opacity-20 rounded transition-all"
+                  className="btn btn-secondary"
                 >
                   閉じる
                 </button>
@@ -192,8 +192,8 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
   return (
     <div className="relative">
       {isInputting && !isSubTask && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto">
-          <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <div className="modal-backdrop">
+          <div className="modal-card max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h3 className="text-xl font-bold text-white mb-4">タスクの振り返り</h3>
             
             <p className="text-sm text-white mb-3">
@@ -204,7 +204,7 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
               placeholder="一言メモ: なぜ早く/遅く終わった？"
               value={reflectionText}
               onChange={(e) => setReflectionText(e.target.value)}
-              className="w-full border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+              className="form-control mb-4 resize-none"
               rows={4}
               autoFocus
             />
@@ -213,14 +213,14 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
               <button
                 type="button"
                 onClick={() => setIsInputting(false)}
-                className="px-4 py-2 text-sm text-white hover:bg-white hover:bg-opacity-20 rounded transition-all"
+                className="btn btn-secondary"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={isPending}
-                className="border-2 border-white text-white font-bold px-4 py-2 rounded hover:bg-white hover:text-blue-600 transition-all text-sm"
+                className="btn btn-primary text-sm"
               >
                 {isPending ? '...' : '確定して完了'}
               </button>
@@ -240,7 +240,7 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
               <button
                 onClick={handleTimerStop}
                 disabled={isPending}
-                className="px-2 py-1 text-[11px] font-bold rounded border bg-yellow-700 text-white border-yellow-600 hover:bg-yellow-600 transition-all"
+                className="btn px-2 py-1 text-[11px] border-rose-300/80 bg-rose-500/30 text-rose-100 hover:bg-rose-500/45"
               >
                 ストップ
               </button>
@@ -248,7 +248,7 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
               <button
                 onClick={handleTimerStart}
                 disabled={isPending}
-                className="px-2 py-1 text-[11px] font-bold rounded border bg-blue-700 text-white border-blue-600 hover:bg-blue-600 transition-all"
+                className="btn px-2 py-1 text-[11px] border-emerald-300/80 bg-emerald-500/30 text-emerald-100 hover:bg-emerald-500/45"
               >
                 スタート
               </button>
@@ -256,14 +256,14 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
             <button
               onClick={handleTimerReset}
               disabled={isPending || isRunning}
-              className="px-2 py-1 text-[11px] font-bold rounded border bg-gray-700 text-white border-gray-600 hover:bg-gray-600 transition-all disabled:opacity-50"
+              className="btn btn-secondary px-2 py-1 text-[11px]"
             >
               リセット
             </button>
             <button
               onClick={handleSubTaskComplete}
               disabled={isPending}
-              className="px-2 py-1 text-[11px] font-bold rounded border bg-green-700 text-white border-green-600 hover:bg-green-600 transition-all"
+              className="btn px-2 py-1 text-[11px] border-sky-300/80 bg-sky-500/30 text-sky-100 hover:bg-sky-500/45"
             >
               完了
             </button>
@@ -273,10 +273,10 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
       <button
         onClick={handleStatusClick}
         disabled={isPending}
-        className={`px-3 py-1 text-xs font-bold rounded border transition-all ${
+        className={`btn text-xs ${
           isTodo
-            ? 'bg-gray-700 text-white border-gray-600 hover:bg-blue-700 hover:border-blue-600'
-            : 'bg-yellow-700 text-white border-yellow-600 hover:bg-gradient-to-r hover:from-blue-500 hover:to-pink-500 hover:border-pink-400'
+            ? 'border-gray-400/70 bg-gray-500/20 text-gray-100 hover:bg-gray-500/30'
+            : 'border-amber-300/80 bg-amber-500/25 text-amber-100 hover:bg-amber-500/35'
         }`}
       >
         {isPending ? '...' : isTodo ? '未完了' : '進行中'}

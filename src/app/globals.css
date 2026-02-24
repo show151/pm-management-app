@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #070b14;
+  --foreground: #e5edf9;
+  --surface: #121a2a;
+  --surface-soft: #182238;
+  --border: #314263;
+  --primary: #5aa2ff;
+  --primary-strong: #3c8bff;
+  --accent: #ff5f9f;
 }
 
 @theme inline {
@@ -14,13 +20,82 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #070b14;
+    --foreground: #e5edf9;
   }
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(60, 139, 255, 0.22), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(255, 95, 159, 0.14), transparent 40%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+@layer components {
+  .app-shell {
+    @apply min-h-screen px-3 py-4 sm:p-6 lg:p-8 text-white;
+  }
+
+  .app-container {
+    @apply mx-auto w-full max-w-5xl space-y-6 sm:space-y-8;
+  }
+
+  .ui-panel {
+    background: linear-gradient(135deg, rgba(24, 34, 56, 0.94), rgba(18, 26, 42, 0.94));
+    border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+    @apply rounded-2xl p-4 shadow-xl;
+  }
+
+  .ui-panel-accent {
+    background: linear-gradient(135deg, rgba(45, 78, 140, 0.72), rgba(104, 47, 89, 0.62));
+    border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--accent) 30%);
+    @apply rounded-2xl p-4 shadow-xl;
+  }
+
+  .ui-title {
+    @apply text-lg font-bold text-white;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    border-color: color-mix(in srgb, var(--primary) 75%, white 25%);
+    background: color-mix(in srgb, var(--primary) 22%, transparent 78%);
+    @apply text-white hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  .btn-secondary {
+    border-color: color-mix(in srgb, var(--border) 82%, white 18%);
+    background: color-mix(in srgb, var(--surface-soft) 86%, black 14%);
+    @apply text-white hover:bg-slate-700/60;
+  }
+
+  .btn-danger {
+    @apply border-red-400/80 bg-red-500/25 text-red-100 hover:bg-red-500/35;
+  }
+
+  .btn-icon {
+    @apply h-8 w-8 p-0 text-base;
+  }
+
+  .form-control {
+    @apply w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-pink-500;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-3 py-4 sm:items-center sm:py-8 overflow-y-auto;
+  }
+
+  .modal-card {
+    @apply w-full max-w-md rounded-xl border border-blue-300/40 bg-gradient-to-br from-slate-800 via-blue-900/55 to-pink-900/45 p-4 shadow-xl sm:p-6;
+  }
+
+  .stat-pill {
+    @apply rounded-full border border-white/20 bg-black/20 px-3 py-1 text-xs sm:text-sm text-white;
+  }
 }

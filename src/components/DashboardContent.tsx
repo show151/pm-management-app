@@ -153,8 +153,8 @@ export default function DashboardContent({
   }
 
   return (
-    <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+    <main className="app-shell">
+      <div className="app-container">
         
         <div className="flex justify-end">
           <Link
@@ -165,7 +165,7 @@ export default function DashboardContent({
           </Link>
         </div>
 
-        <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-4">
+        <div className="ui-panel-accent rounded-lg p-4">
           <h2 className="text-lg font-bold text-white mb-2">📊 PM スキル分析ダッシュボード</h2>
           <p className="text-sm text-gray-300">
             完了済みタスクの見積もりと実績から、あなたの PM スキル向上度を可視化します。
@@ -176,7 +176,7 @@ export default function DashboardContent({
               id="project-filter"
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+              className="form-control inline-block w-auto px-2 py-1"
             >
               <option value="all">すべて</option>
               {projectOptions.map((project) => (
@@ -192,14 +192,14 @@ export default function DashboardContent({
         <Dashboard tasks={filteredDashboardTasks} />
 
         {/* 完了タスク数の詳細表示 */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <div className="ui-panel rounded-lg p-4">
           <h3 className="font-bold text-white mb-3">📈 完了タスク統計</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-gray-700 p-3 rounded-lg text-center border border-gray-600">
+            <div className="rounded-lg border border-blue-300/30 bg-blue-500/10 p-3 text-center">
               <p className="text-xs text-gray-300 mb-1">完了親タスク数</p>
               <p className="text-2xl font-black text-blue-400">{completedParentCount}</p>
             </div>
-            <div className="bg-gray-700 p-3 rounded-lg text-center border border-gray-600">
+            <div className="rounded-lg border border-pink-300/30 bg-pink-500/10 p-3 text-center">
               <p className="text-xs text-gray-300 mb-1">完了子タスク数</p>
               <p className="text-2xl font-black text-pink-400">{completedChildCount}</p>
             </div>
@@ -208,10 +208,10 @@ export default function DashboardContent({
 
         {/* 詳細リスト（トグル） */}
         {completedParentCount > 0 || completedChildCount > 0 ? (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+          <div className="ui-panel rounded-lg overflow-hidden p-0">
             <button
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-              className="w-full px-4 py-3 text-left font-bold text-white hover:bg-gray-700 transition-colors flex items-center justify-between"
+              className="w-full px-4 py-3 text-left font-bold text-white hover:bg-slate-700/50 transition-colors flex items-center justify-between"
             >
               <span>✓ 完了済みタスク詳細</span>
               <span className={`transform transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`}>
@@ -296,7 +296,7 @@ export default function DashboardContent({
             )}
           </div>
         ) : (
-          <div className="bg-gray-800 border border-yellow-600 rounded-lg p-4 text-center">
+          <div className="ui-panel rounded-lg border-yellow-500/70 p-4 text-center">
             <p className="text-yellow-400 text-sm">
               📝 データがまだありません。タスクを完了させて、見積もり時間と実績時間を記録することでダッシュボードにデータが表示されます。
             </p>
@@ -304,7 +304,7 @@ export default function DashboardContent({
         )}
 
         {/* データ説明 */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-3">
+        <div className="ui-panel rounded-lg p-4 space-y-3">
           <h3 className="font-bold text-white">📈 見方のガイド</h3>
           <ul className="text-sm text-gray-300 space-y-2">
             <li>

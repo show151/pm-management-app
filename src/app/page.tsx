@@ -173,9 +173,12 @@ export default async function Home() {
     take: 5
   })
 
+  const actionButtonClass = 'btn btn-primary w-full sm:w-auto'
+  const projectCardClass = 'ui-panel-accent relative overflow-hidden p-4 sm:p-5'
+
   return (
-    <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+    <main className="app-shell">
+      <div className="app-container">
         
         <Header email={user?.email || 'Guest'} name={dbUser?.name || fallbackName} />
 
@@ -187,9 +190,10 @@ export default async function Home() {
           items={projectTimelineItems}
         />
 
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div className="ui-panel rounded-xl p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           {urgentTasks.length > 0 && (
-            <div className="w-full flex-grow bg-red-900 bg-opacity-50 border border-red-600 rounded-lg p-4">
+            <div className="w-full flex-grow rounded-lg border border-red-500/70 bg-red-900/45 p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xl">⚠️</span>
                 <h3 className="text-sm font-bold text-white">期限が近いタスク ({urgentTasks.length})</h3>
@@ -212,16 +216,18 @@ export default async function Home() {
               </div>
             </div>
           )}
-          <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+          <div className="w-full sm:w-auto grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             <Link
               href="/dashboard"
-              className="flex-1 sm:flex-none border-2 border-white text-white font-bold px-4 py-2 rounded hover:bg-white hover:text-blue-600 transition-all text-sm text-center"
+              className={actionButtonClass}
             >
-              📊 ダッシュボード
+              <span>📊</span>
+              <span>ダッシュボード</span>
             </Link>
-            <NewProjectButton />
+            <NewProjectButton className={actionButtonClass} />
+            </div>
           </div>
-        </div>
+          </div>
 
         <section className="space-y-4">
           <h2 className="text-lg font-bold text-white">👤 個人プロジェクト ({ownProjects.length})</h2>
@@ -233,14 +239,14 @@ export default async function Home() {
               const isOwner = project.userId === user.id
 
               return (
-                <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                <div key={project.id} className={`${projectCardClass} ${project.status === 'COMPLETED' ? 'opacity-65' : ''}`}>
                   <Link
                     href={`/project/${project.id}`}
                     aria-label={`${project.title} を開く`}
-                    className="absolute inset-0 rounded-xl z-10"
+                    className="absolute inset-0 rounded-2xl z-10"
                   />
-                  <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
-                    <div className="flex-grow">
+                  <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-3">
+                    <div className="flex-grow space-y-2 rounded-lg bg-black/15 p-3">
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                         <h2 className={`text-lg sm:text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
                         <div className="pointer-events-auto">
@@ -250,27 +256,28 @@ export default async function Home() {
                       <p className="text-gray-200 text-sm mb-2">{project.description}</p>
                       <ProjectDate startDate={project.startDate} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
                     </div>
-                    <div className="pointer-events-auto">
-                      <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                    <div className="pointer-events-none w-full sm:w-auto sm:min-w-[18rem] flex flex-col gap-3">
+                      <div className="pointer-events-auto self-start sm:self-end">
+                        <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                      </div>
+                      {nextTask && (
+                        <div className="rounded-lg border border-sky-300/30 bg-slate-900/55 p-3">
+                          <p className="text-xs text-gray-300 mb-1">次のタスク:</p>
+                          <p className="text-sm text-white font-medium">{nextTask.title}</p>
+                          {nextTask.dueDate && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              📅 {new Date(nextTask.dueDate).toLocaleDateString('ja-JP')} ({formatTimeLeft(nextTask.dueDate)})
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {nextTask && (
-                    <div className="pointer-events-none relative z-20 mt-4 p-3 bg-gray-800 bg-opacity-50 rounded-lg border border-gray-700">
-                      <p className="text-xs text-gray-300 mb-1">次のタスク:</p>
-                      <p className="text-sm text-white font-medium">{nextTask.title}</p>
-                      {nextTask.dueDate && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          📅 {new Date(nextTask.dueDate).toLocaleDateString('ja-JP')} ({formatTimeLeft(nextTask.dueDate)})
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="pointer-events-none relative z-20 mt-4 flex flex-wrap gap-3 text-sm">
-                    <span className="text-white">📋 残り親タスク {project.parentRemainingCount}</span>
-                    <span className="text-white">📝 残り子タスク {project.subRemainingCount}</span>
-                    <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
+                  <div className="pointer-events-none relative z-20 mt-4 flex flex-wrap gap-2 text-sm">
+                    <span className="stat-pill">📋 残り親タスク {project.parentRemainingCount}</span>
+                    <span className="stat-pill">📝 残り子タスク {project.subRemainingCount}</span>
+                    <span className="stat-pill">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
                   </div>
                 </div>
               )
@@ -288,14 +295,14 @@ export default async function Home() {
               const isOwner = project.userId === user.id
 
               return (
-                <div key={project.id} className={`relative bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400 ${project.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                <div key={project.id} className={`${projectCardClass} ${project.status === 'COMPLETED' ? 'opacity-65' : ''}`}>
                   <Link
                     href={`/project/${project.id}`}
                     aria-label={`${project.title} を開く`}
-                    className="absolute inset-0 rounded-xl z-10"
+                    className="absolute inset-0 rounded-2xl z-10"
                   />
-                  <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
-                    <div className="flex-grow">
+                  <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-3">
+                    <div className="flex-grow space-y-2 rounded-lg bg-black/15 p-3">
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                         <h2 className={`text-lg sm:text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
                         <div className="pointer-events-auto">
@@ -305,27 +312,28 @@ export default async function Home() {
                       <p className="text-gray-200 text-sm mb-2">{project.description}</p>
                       <ProjectDate startDate={project.startDate} date={project.dueDate} isCompleted={project.status === 'COMPLETED'} />
                     </div>
-                    <div className="pointer-events-auto">
-                      <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                    <div className="pointer-events-none w-full sm:w-auto sm:min-w-[18rem] flex flex-col gap-3">
+                      <div className="pointer-events-auto self-start sm:self-end">
+                        <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                      </div>
+                      {nextTask && (
+                        <div className="rounded-lg border border-sky-300/30 bg-slate-900/55 p-3">
+                          <p className="text-xs text-gray-300 mb-1">次のタスク:</p>
+                          <p className="text-sm text-white font-medium">{nextTask.title}</p>
+                          {nextTask.dueDate && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              📅 {new Date(nextTask.dueDate).toLocaleDateString('ja-JP')} ({formatTimeLeft(nextTask.dueDate)})
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {nextTask && (
-                    <div className="pointer-events-none relative z-20 mt-4 p-3 bg-gray-800 bg-opacity-50 rounded-lg border border-gray-700">
-                      <p className="text-xs text-gray-300 mb-1">次のタスク:</p>
-                      <p className="text-sm text-white font-medium">{nextTask.title}</p>
-                      {nextTask.dueDate && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          📅 {new Date(nextTask.dueDate).toLocaleDateString('ja-JP')} ({formatTimeLeft(nextTask.dueDate)})
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="pointer-events-none relative z-20 mt-4 flex flex-wrap gap-3 text-sm">
-                    <span className="text-white">📋 残り親タスク {project.parentRemainingCount}</span>
-                    <span className="text-white">📝 残り子タスク {project.subRemainingCount}</span>
-                    <span className="text-white">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
+                  <div className="pointer-events-none relative z-20 mt-4 flex flex-wrap gap-2 text-sm">
+                    <span className="stat-pill">📋 残り親タスク {project.parentRemainingCount}</span>
+                    <span className="stat-pill">📝 残り子タスク {project.subRemainingCount}</span>
+                    <span className="stat-pill">✓ {project.parentCompletedCount + project.subCompletedCount} 完了</span>
                   </div>
                 </div>
               )

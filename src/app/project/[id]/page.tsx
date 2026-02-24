@@ -98,15 +98,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   }))
 
   return (
-    <main className="min-h-screen px-3 py-4 sm:p-6 lg:p-8 bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+    <main className="app-shell">
+      <div className="app-container">
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-blue-400 hover:text-blue-300 flex items-center gap-2">
+          <Link href="/" className="btn btn-secondary text-sm">
             ← プロジェクト一覧に戻る
           </Link>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-400">
+        <div className="ui-panel-accent p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
             <h1 className={`text-xl sm:text-2xl font-bold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h1>
             <ProjectStatusButton projectId={project.id} status={project.status} />
@@ -132,13 +132,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           {project.tasks.length > 0 ? (
             project.tasks.map((task) => (
               <div key={task.id} className="border border-blue-700 rounded-lg overflow-hidden">
-                <div className={`p-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 transition-colors ${task.status === 'DONE' ? 'bg-gray-800 opacity-70' : 'bg-gray-900'}`}>
+                <div className={`p-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 transition-colors ${task.status === 'DONE' ? 'bg-slate-800/80 opacity-70' : 'bg-slate-900/70'}`}>
                   <div className="flex-grow">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className={`font-bold text-lg ${task.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}`}>
                         {task.title}
                       </h3>
-                      <TaskActions taskId={task.id} title={task.title} importance={task.importance} urgency={task.urgency} estimatedMinutes={task.estimatedMinutes} startDate={task.startDate} dueDate={task.dueDate} />
+                      <TaskActions taskId={task.id} title={task.title} importance={task.importance} urgency={task.urgency} estimatedMinutes={task.estimatedMinutes} startDate={task.startDate} dueDate={task.dueDate} isSubTask={false} />
                     </div>
                     <TaskDate date={task.dueDate} isDone={task.status === 'DONE'} />
                     <div className="text-xs text-gray-300 mt-1 flex flex-wrap gap-2">
@@ -173,7 +173,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                                 {subTask.estimatedMinutes}分
                               </span>
                             )}
-                            <TaskActions taskId={subTask.id} title={subTask.title} importance={subTask.importance} urgency={subTask.urgency} estimatedMinutes={subTask.estimatedMinutes} startDate={subTask.startDate} dueDate={subTask.dueDate} />
+                            <TaskActions taskId={subTask.id} title={subTask.title} importance={subTask.importance} urgency={subTask.urgency} estimatedMinutes={subTask.estimatedMinutes} startDate={subTask.startDate} dueDate={subTask.dueDate} isSubTask={true} />
                           </div>
                           <div className="scale-90 sm:origin-right self-end sm:self-auto">
                             <TaskStatusButton 
@@ -200,29 +200,24 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                         <input type="hidden" name="parentId" value={task.id} />
                         <input 
                           type="date" 
-                          name="startDate" 
-                          className="border border-gray-600 bg-gray-700 text-white rounded px-1 py-1 text-xs w-full sm:w-28 [color-scheme:dark]" 
-                        />
-                        <input 
-                          type="date" 
                           name="dueDate" 
-                          className="border border-gray-600 bg-gray-700 text-white rounded px-1 py-1 text-xs w-full sm:w-28 [color-scheme:dark]" 
+                          className="form-control px-1 py-1 text-xs w-full sm:w-28 [color-scheme:dark]" 
                         />
                         <input 
                           name="title" 
                           placeholder="小タスク名..." 
-                          className="border border-gray-600 bg-gray-700 text-white rounded px-2 py-1 sm:col-span-2 lg:col-span-1"
+                          className="form-control px-2 py-1 sm:col-span-2 lg:col-span-1"
                           required 
                         />
                         <input 
                           name="estimatedMinutes" 
                           type="number" 
                           placeholder="分" 
-                          className="w-full border border-gray-600 bg-gray-700 text-white rounded px-1 py-1"
+                          className="form-control w-full px-1 py-1"
                         />
                         <div className="sm:col-span-2 lg:col-span-1 flex gap-2">
-                          <button type="submit" className="flex-1 border-2 border-white text-white font-bold px-3 py-1 rounded hover:bg-white hover:text-blue-600 transition-all">追加</button>
-                          <CloseDetailsButton className="flex-1 border border-gray-500 text-gray-200 font-bold px-3 py-1 rounded hover:bg-gray-700 transition-all text-center">
+                          <button type="submit" className="btn btn-primary flex-1 px-3 py-1">追加</button>
+                          <CloseDetailsButton className="btn btn-secondary flex-1 px-3 py-1 text-center">
                             キャンセル
                           </CloseDetailsButton>
                         </div>

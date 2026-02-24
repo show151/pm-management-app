@@ -65,7 +65,7 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
   }
 
   return (
-    <section className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
+    <section className="ui-panel rounded-xl p-4 space-y-3">
       <h2 className="text-base font-bold text-white">メンバー</h2>
 
       <div className="text-sm text-gray-200">
@@ -75,7 +75,7 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
       {members.length > 0 ? (
         <div className="space-y-2">
           {members.map((member) => (
-            <div key={member.id} className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded px-3 py-2">
+            <div key={member.id} className="flex items-center justify-between rounded px-3 py-2 border border-gray-700 bg-slate-900/50">
               <div className="text-sm text-gray-100">
                 {member.email}
               </div>
@@ -84,7 +84,7 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
                   type="button"
                   onClick={() => handleRemoveMember(member)}
                   disabled={isPending}
-                  className="text-xs text-red-300 hover:text-red-200"
+                  className="btn btn-danger text-xs px-2 py-1"
                 >
                   削除
                 </button>
@@ -104,13 +104,13 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="名前またはメールで検索"
-              className="flex-1 border border-gray-600 bg-gray-700 text-white rounded px-3 py-2 text-sm"
+              className="form-control flex-1"
             />
             <button
               type="button"
               onClick={handleSearch}
               disabled={isPending || !query.trim()}
-              className="border border-white text-white font-bold px-3 py-2 text-xs rounded hover:bg-white hover:text-blue-600 transition-all disabled:opacity-50"
+              className="btn btn-secondary text-xs"
             >
               検索
             </button>
@@ -118,7 +118,7 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
               type="button"
               onClick={handleAddMemberByEmail}
               disabled={isPending || !query.trim()}
-              className="border-2 border-white text-white font-bold px-3 py-2 text-xs rounded hover:bg-white hover:text-blue-600 transition-all disabled:opacity-50"
+              className="btn btn-primary text-xs"
             >
               メールで直接追加
             </button>
@@ -127,7 +127,7 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
           {searchResults.length > 0 && (
             <div className="space-y-2">
               {searchResults.map((candidate) => (
-                <div key={candidate.id} className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded px-3 py-2">
+                <div key={candidate.id} className="flex items-center justify-between rounded px-3 py-2 border border-gray-700 bg-slate-900/50">
                   <div className="text-sm text-gray-100">
                     <p className="font-medium">{candidate.name || '(名前未設定)'}</p>
                     <p className="text-xs text-gray-400">{candidate.email}</p>
@@ -136,7 +136,7 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
                     type="button"
                     onClick={() => handleAddFromCandidate(candidate)}
                     disabled={isPending}
-                    className="text-xs border border-white text-white px-2 py-1 rounded hover:bg-white hover:text-blue-600 transition-all"
+                    className="btn btn-primary text-xs px-2 py-1"
                   >
                     追加
                   </button>

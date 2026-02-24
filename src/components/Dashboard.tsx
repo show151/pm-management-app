@@ -37,21 +37,21 @@ export default function Dashboard({ tasks }: { tasks: TaskData[] }) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-6 rounded-xl shadow-lg border border-blue-400 mb-8">
+    <div className="ui-panel-accent p-6 mb-8">
       <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
         📊 メタ認知ダッシュボード
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-blue-600 p-4 rounded-lg text-center border border-blue-400">
+        <div className="rounded-lg border border-blue-300/50 bg-blue-500/20 p-4 text-center">
           <p className="text-xs text-blue-100 font-bold mb-1">完了タスク数</p>
           <p className="text-2xl font-black text-white">{completedTasks.length}</p>
         </div>
-        <div className="bg-pink-600 p-4 rounded-lg text-center border border-pink-400">
+        <div className="rounded-lg border border-pink-300/50 bg-pink-500/20 p-4 text-center">
           <p className="text-xs text-pink-100 font-bold mb-1">総実績時間</p>
           <p className="text-2xl font-black text-white">{totalActual}<span className="text-sm ml-1">分</span></p>
         </div>
-        <div className={`p-4 rounded-lg text-center border ${Number(accuracyRatio) > 1.2 ? 'bg-red-600 border-red-400' : 'bg-green-600 border-green-400'}`}>
+        <div className={`p-4 rounded-lg text-center border ${Number(accuracyRatio) > 1.2 ? 'bg-red-500/25 border-red-300/50' : 'bg-green-500/25 border-green-300/50'}`}>
           <p className="text-xs font-bold mb-1 text-gray-200">見積もり対実績比</p>
           <p className="text-2xl font-black text-white">x{accuracyRatio}</p>
           <p className="text-[10px] text-gray-300 mt-1">1.0に近いほど高精度</p>

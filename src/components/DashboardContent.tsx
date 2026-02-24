@@ -156,10 +156,10 @@ export default function DashboardContent({
     <main className="app-shell">
       <div className="app-container">
         
-        <div className="flex justify-end">
+        <div className="flex justify-start">
           <Link
             href="/"
-            className="text-sm text-blue-400 hover:text-blue-300 underline self-start sm:self-auto"
+            className="inline-flex items-center rounded-md border border-blue-300/40 bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-500/20 hover:text-blue-100"
           >
             ← ホームに戻る
           </Link>

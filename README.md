@@ -143,7 +143,7 @@ https://pm-management-app.vercel.app/
 ## 開発期間・体制
 
 - 開発体制：個人開発
-- 開発期間：1/30 - 2/19 (70時間以上)
+- 開発期間：2026/1/30 - 2026/2/19（70時間以上）
 
 ---
 
@@ -188,7 +188,7 @@ https://pm-management-app.vercel.app/
 npm install
 ```
 
-`.env.local` に以下を設定してください。
+`.env` に以下を設定してください。
 
 ```env
 DATABASE_URL=

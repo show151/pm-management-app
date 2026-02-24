@@ -90,7 +90,7 @@ https://pm-management-app.vercel.app/
 - 子タスクにはタイマー機能あり
 - 状態は `TODO / IN_PROGRESS / DONE`
 
-<p align="center"><img src="./images/projectDetail.png" alt="projectDetail" width="600" /></p>
+<p align="center"><img src="./images/newSubTask.png" alt="newSubTask" width="600" /></p>
 <p align="center"><sub>図9. 親子タスク（WBS）構成の表示</sub></p>
 
 ---

@@ -11,10 +11,69 @@ type Props = {
   actualMinutes?: number | null
   estimatedMinutes?: number | null
   reflection?: string | null
+  startDate?: Date | null
+  dueDate?: Date | null
+  actualStartAt?: Date | null
+  actualEndAt?: Date | null
   isSubTask?: boolean
 }
 
-export default function TaskStatusButton({ taskId, status, actualMinutes, estimatedMinutes, reflection, isSubTask = false }: Props) {
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function startOfDayMs(value: Date | null | undefined) {
+  if (!value) return null
+  const date = new Date(value)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function formatDateTime(value: Date | null | undefined) {
+  if (!value) return ''
+  return new Date(value).toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function buildDeltaText(
+  label: '開始' | '完了',
+  actualAt: Date | null | undefined,
+  plannedAt: Date | null | undefined
+) {
+  if (!actualAt) return null
+  const actualLabel = `${label}記録: ${formatDateTime(actualAt)}`
+  const actualMs = startOfDayMs(actualAt)
+  const plannedMs = startOfDayMs(plannedAt)
+
+  if (actualMs === null || plannedMs === null) {
+    return actualLabel
+  }
+
+  const diffDays = Math.round((actualMs - plannedMs) / DAY_MS)
+  if (diffDays === 0) {
+    return `${actualLabel}（予定通り）`
+  }
+  if (diffDays > 0) {
+    return `${actualLabel}（${diffDays}日遅れ）`
+  }
+  return `${actualLabel}（${Math.abs(diffDays)}日前倒し）`
+}
+
+export default function TaskStatusButton({
+  taskId,
+  status,
+  actualMinutes,
+  estimatedMinutes,
+  reflection,
+  startDate,
+  dueDate,
+  actualStartAt,
+  actualEndAt,
+  isSubTask = false,
+}: Props) {
   const [isPending, startTransition] = useTransition()
   const [isInputting, setIsInputting] = useState(false)
   const [showReflection, setShowReflection] = useState(false)
@@ -50,6 +109,8 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
   const isInProgress = status === 'IN_PROGRESS'
   const isTodo = status === 'TODO'
   const isRunning = runningSinceMs !== null
+  const startDeltaText = !isSubTask ? buildDeltaText('開始', actualStartAt, startDate) : null
+  const endDeltaText = !isSubTask ? buildDeltaText('完了', actualEndAt, dueDate) : null
 
   const elapsedMs = useMemo(() => {
     return accumulatedMs + (runningSinceMs ? nowMs - runningSinceMs : 0)
@@ -148,22 +209,26 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
   if (isDone) {
     return (
       <>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleUndo}
-            disabled={isPending}
-            className="btn text-xs border-emerald-300/80 bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/35"
-          >
-            {isPending ? '...' : `✓ 完了 (実績: ${actualMinutes}分)`}
-          </button>
-          {reflection && (
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowReflection(true)}
-              className="btn btn-primary text-xs"
+              onClick={handleUndo}
+              disabled={isPending}
+              className="btn text-xs border-emerald-300/80 bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/35"
             >
-              📝 振り返り
+              {isPending ? '...' : `✓ 完了 (実績: ${actualMinutes}分)`}
             </button>
-          )}
+            {reflection && (
+              <button
+                onClick={() => setShowReflection(true)}
+                className="btn btn-primary text-xs"
+              >
+                📝 振り返り
+              </button>
+            )}
+          </div>
+          {startDeltaText && <p className="text-[11px] text-gray-300">{startDeltaText}</p>}
+          {endDeltaText && <p className="text-[11px] text-gray-300">{endDeltaText}</p>}
         </div>
         
         {showReflection && reflection && typeof document !== 'undefined' && createPortal(
@@ -270,17 +335,20 @@ export default function TaskStatusButton({ taskId, status, actualMinutes, estima
           </div>
         </div>
       ) : (
-      <button
-        onClick={handleStatusClick}
-        disabled={isPending}
-        className={`btn text-xs ${
-          isTodo
-            ? 'border-gray-400/70 bg-gray-500/20 text-gray-100 hover:bg-gray-500/30'
-            : 'border-amber-300/80 bg-amber-500/25 text-amber-100 hover:bg-amber-500/35'
-        }`}
-      >
-        {isPending ? '...' : isTodo ? '未完了' : '進行中'}
-      </button>
+      <div className="flex flex-col items-end gap-1">
+        <button
+          onClick={handleStatusClick}
+          disabled={isPending}
+          className={`btn text-xs ${
+            isTodo
+              ? 'border-gray-400/70 bg-gray-500/20 text-gray-100 hover:bg-gray-500/30'
+              : 'border-amber-300/80 bg-amber-500/25 text-amber-100 hover:bg-amber-500/35'
+          }`}
+        >
+          {isPending ? '...' : isTodo ? '未完了' : '進行中'}
+        </button>
+        {isInProgress && startDeltaText && <p className="text-[11px] text-gray-300">{startDeltaText}</p>}
+      </div>
       )}
     </div>
   )

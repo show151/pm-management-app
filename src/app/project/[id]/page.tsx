@@ -153,6 +153,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     actualMinutes={task.actualMinutes}
                     estimatedMinutes={task.estimatedMinutes} 
                     reflection={task.reflection}
+                    startDate={task.startDate}
+                    dueDate={task.dueDate}
+                    actualStartAt={task.actualStartAt}
+                    actualEndAt={task.actualEndAt}
                     isSubTask={false}
                   />
                 </div>
@@ -182,6 +186,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                               actualMinutes={subTask.actualMinutes}
                               estimatedMinutes={subTask.estimatedMinutes}
                               reflection={subTask.reflection}
+                              startDate={subTask.startDate}
+                              dueDate={subTask.dueDate}
+                              actualStartAt={subTask.actualStartAt}
+                              actualEndAt={subTask.actualEndAt}
                               isSubTask={true}
                             />
                           </div>

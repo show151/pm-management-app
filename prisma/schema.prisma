@@ -61,6 +61,8 @@ model Task {
 
   startDate        DateTime?
   dueDate          DateTime?
+  actualStartAt    DateTime?
+  actualEndAt      DateTime?
 
   // --- 1. アイゼンハワー行列用（優先順位） ---
   importance Int @default(3) // 重要度 (1:低い - 5:高い)

@@ -55,6 +55,7 @@ export async function assertTaskAccess(taskId: string, userId: string) {
     where: { id: taskId },
     select: {
       id: true,
+      status: true,
       projectId: true,
       project: {
         select: {

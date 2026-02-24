@@ -3,6 +3,7 @@
 
 import { createProject } from '@/app/actions/create-actions'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function NewProjectButton({ className = '' }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -18,7 +19,7 @@ export default function NewProjectButton({ className = '' }: { className?: strin
         <span>新規プロジェクト</span>
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div className="modal-backdrop">
           <div className="modal-card max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h3 className="text-xl font-bold text-white mb-4">新しいプロジェクト</h3>
@@ -65,7 +66,8 @@ export default function NewProjectButton({ className = '' }: { className?: strin
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

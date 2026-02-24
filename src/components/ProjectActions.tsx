@@ -3,6 +3,7 @@
 
 import { deleteProject, updateProject } from '@/app/actions/modify-actions'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function ProjectActions({ projectId, title, description, startDate, dueDate, canDelete = true }: { projectId: string, title: string, description: string, startDate: Date | null, dueDate: Date | null, canDelete?: boolean }) {
   const [isEditing, setIsEditing] = useState(false)
@@ -24,7 +25,8 @@ export default function ProjectActions({ projectId, title, description, startDat
   }
 
   if (isEditing) {
-    return (
+    if (typeof document === 'undefined') return null
+    return createPortal(
       <div
         className="modal-backdrop"
         onClick={(e) => {
@@ -87,7 +89,8 @@ export default function ProjectActions({ projectId, title, description, startDat
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )
   }
 

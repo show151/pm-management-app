@@ -3,6 +3,7 @@
 import { updateUserName } from '@/app/actions/modify-actions'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
 
 type Props = {
   currentName: string
@@ -36,7 +37,7 @@ export default function UserNameEditor({ currentName }: Props) {
         ユーザー名編集
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div className="modal-backdrop">
           <div className="modal-card max-w-sm max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h3 className="text-lg font-bold text-white mb-3">ユーザーネーム編集</h3>
@@ -65,7 +66,8 @@ export default function UserNameEditor({ currentName }: Props) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

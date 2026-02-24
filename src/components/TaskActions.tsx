@@ -3,6 +3,7 @@
 
 import { deleteTask, updateTaskDetails } from '@/app/actions/modify-actions'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 type TaskActionsProps = {
   taskId: string
@@ -36,7 +37,8 @@ export default function TaskActions({ taskId, title, importance = 3, urgency = 3
   }
 
   if (isEditing) {
-    return (
+    if (typeof document === 'undefined') return null
+    return createPortal(
       <div className="modal-backdrop" onClick={() => setIsEditing(false)}>
         <div className="modal-card max-h-[calc(100vh-2rem)] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-lg font-bold text-white mb-4">タスク編集</h3>
@@ -124,7 +126,8 @@ export default function TaskActions({ taskId, title, importance = 3, urgency = 3
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )
   }
 

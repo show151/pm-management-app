@@ -1,5 +1,6 @@
 // src/app/login/page.tsx
 import { createClient } from '@/utils/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import Link from 'next/link'
@@ -7,9 +8,40 @@ import Link from 'next/link'
 // ログイン処理（Server Action）
 async function signIn(formData: FormData) {
   'use server'
-  const email = formData.get('email') as string
+  const usernameInput = ((formData.get('username') as string) || '').trim()
+  const emailInput = ((formData.get('email') as string) || '').trim()
+  const loginInput = usernameInput || emailInput
   const password = formData.get('password') as string
   const supabase = await createClient()
+  let email = loginInput
+
+  if (!loginInput) {
+    return redirect(`/login?message=${encodeURIComponent('メールアドレスまたはユーザー名を入力してください')}`)
+  }
+  if (!password) {
+    return redirect(`/login?message=${encodeURIComponent('パスワードを入力してください')}`)
+  }
+
+  // ユーザー名でのログインを許可するため、メールに解決する
+  if (!loginInput.includes('@')) {
+    const matchedUsers = await prisma.user.findMany({
+      where: {
+        name: { equals: loginInput, mode: 'insensitive' },
+      },
+      select: { email: true },
+      take: 2,
+    })
+
+    if (matchedUsers.length === 0) {
+      return redirect(`/login?message=${encodeURIComponent('ユーザーが見つかりませんでした')}`)
+    }
+
+    if (matchedUsers.length > 1) {
+      return redirect(`/login?message=${encodeURIComponent('同名ユーザーが複数います。メールアドレスでログインしてください')}`)
+    }
+
+    email = matchedUsers[0].email
+  }
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -27,14 +59,18 @@ async function signIn(formData: FormData) {
 async function signUp(formData: FormData) {
   'use server'
   const origin = (await headers()).get('origin')
-  const email = formData.get('email') as string
+  const email = ((formData.get('email') as string) || '').trim()
   const password = formData.get('password') as string
   const usernameInput = (formData.get('username') as string | null)?.trim() ?? ''
   const supabase = await createClient()
+
+  if (!email || !email.includes('@')) {
+    return redirect(`/login?message=${encodeURIComponent('新規登録はメールアドレスで行ってください')}`)
+  }
   const fallbackName = email?.split('@')[0] || 'New User'
   const username = usernameInput || fallbackName
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -53,6 +89,21 @@ async function signUp(formData: FormData) {
     return redirect(`/login?message=${encodeURIComponent('登録できませんでした')}`)
   }
 
+  if (data.user?.id && data.user.email) {
+    await prisma.user.upsert({
+      where: { id: data.user.id },
+      update: {
+        email: data.user.email,
+        name: username,
+      },
+      create: {
+        id: data.user.id,
+        email: data.user.email,
+        name: username,
+      },
+    })
+  }
+
   // 開発環境向け：メール確認をスキップしてログインできている場合もあるためリダイレクト
   return redirect(`/?message=${encodeURIComponent('確認メールをチェックしてください')}`)
 }
@@ -61,19 +112,19 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const params = await searchParams
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+    <main className="app-shell flex items-center justify-center">
       <div className="w-full max-w-md">
-        <div className="bg-gradient-to-br from-blue-500 to-pink-500 p-8 rounded-xl shadow-lg border border-blue-400">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <span className="text-3xl">🚀</span>
+        <div className="ui-panel-accent">
+          <div className="mb-6 text-center">
             <h1 className="text-3xl font-bold text-white">PM-Master</h1>
+            <p className="mt-2 text-sm text-gray-200">ログインまたは新規登録</p>
           </div>
-          
+
           <form className="flex flex-col gap-4">
             <div>
-              <label className="text-sm font-medium text-white block mb-2" htmlFor="username">ユーザーネーム（新規登録時）</label>
+              <label className="text-sm font-medium text-white block mb-2" htmlFor="username">ユーザーネーム（ログイン/新規登録）</label>
               <input
-                className="w-full rounded-md px-4 py-2 bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="form-control"
                 name="username"
                 placeholder="例: show5"
               />
@@ -82,17 +133,17 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <div>
               <label className="text-sm font-medium text-white block mb-2" htmlFor="email">メールアドレス</label>
               <input
-                className="w-full rounded-md px-4 py-2 bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="form-control"
                 name="email"
                 placeholder="you@example.com"
                 required
               />
             </div>
-            
+
             <div>
               <label className="text-sm font-medium text-white block mb-2" htmlFor="password">パスワード</label>
               <input
-                className="w-full rounded-md px-4 py-2 bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="form-control"
                 type="password"
                 name="password"
                 placeholder="••••••••"
@@ -101,31 +152,31 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             </div>
             
             <div className="flex flex-col gap-3 mt-2">
-              <button formAction={signIn} className="border-2 border-white text-white font-bold px-4 py-2 rounded hover:bg-white hover:text-blue-600 transition-all">
+              <button formAction={signIn} formNoValidate className="btn btn-primary w-full">
                 ログイン
               </button>
-              <button formAction={signUp} className="bg-gray-800 text-white font-medium px-4 py-2 rounded hover:bg-gray-700 transition-all">
+              <button formAction={signUp} className="btn btn-secondary w-full">
                 新規登録
               </button>
               <Link
                 href="/guest"
-                className="text-center bg-white text-blue-700 font-bold px-4 py-2 rounded hover:bg-gray-100 transition-all"
+                className="btn w-full border-emerald-300/80 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
               >
                 ゲストログイン
               </Link>
-              <p className="text-xs text-gray-200 text-center">
+              <p className="text-xs text-gray-300 text-center">
                 ゲストデータはブラウザを閉じると消えます。
               </p>
             </div>
             
             {params?.message && (
-              <p className="mt-2 p-3 bg-red-900 text-red-200 text-center rounded text-sm border border-red-700">
+              <p className="mt-2 rounded-lg border border-red-500/60 bg-red-900/55 p-3 text-center text-sm text-red-200">
                 {params.message}
               </p>
             )}
           </form>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

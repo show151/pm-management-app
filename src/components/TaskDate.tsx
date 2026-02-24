@@ -51,7 +51,7 @@ export default function TaskDate({ startDate, date, isDone, isSubTask = false }:
       {/* アイコン表示 - 子タスクのみ */}
       {isSubTask && (
         <span className="text-xs mr-1">
-          {isOverdue ? '櫨' : isToday ? '笞｡' : '套'}
+          {isOverdue ? '❌' : isToday ? '🔔' : '✅'}
         </span>
       )}
 

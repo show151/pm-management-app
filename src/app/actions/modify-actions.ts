@@ -91,6 +91,57 @@ export async function completeTask(taskId: string, actualMinutes: number, reflec
   revalidatePath(`/project/${task.projectId}`)
 }
 
+export async function updateSubTaskActualMinutes(taskId: string, actualMinutes: number) {
+  const authUser = await getCurrentUserOrThrow()
+  const task = await assertTaskAccess(taskId, authUser.id)
+  const subTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { parentId: true },
+  })
+
+  if (!subTask?.parentId) {
+    throw new Error('NOT_SUBTASK')
+  }
+
+  const normalizedMinutes = Number.isFinite(actualMinutes)
+    ? Math.max(0, Math.floor(actualMinutes))
+    : 0
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { actualMinutes: normalizedMinutes },
+  })
+
+  const parent = await prisma.task.findUnique({
+    where: { id: subTask.parentId },
+    select: {
+      id: true,
+      status: true,
+      children: {
+        select: {
+          status: true,
+          actualMinutes: true,
+        },
+      },
+    },
+  })
+
+  if (parent?.status === 'DONE') {
+    const recomputedParentActualMinutes = parent.children.reduce((sum, child) => {
+      if (child.status !== 'DONE') return sum
+      return sum + (child.actualMinutes ?? 0)
+    }, 0)
+
+    await prisma.task.update({
+      where: { id: parent.id },
+      data: { actualMinutes: recomputedParentActualMinutes },
+    })
+  }
+
+  revalidatePath('/')
+  revalidatePath(`/project/${task.projectId}`)
+}
+
 export async function updateTaskDate(taskId: string, dateStr: string) {
   const authUser = await getCurrentUserOrThrow()
   const task = await assertTaskAccess(taskId, authUser.id)

@@ -1,7 +1,7 @@
 // src/components/TaskStatusButton.tsx
 'use client'
 
-import { completeTask, startTask, undoTask } from '@/app/actions/modify-actions'
+import { completeTask, startTask, undoTask, updateSubTaskActualMinutes } from '@/app/actions/modify-actions'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -77,8 +77,12 @@ export default function TaskStatusButton({
   const [isPending, startTransition] = useTransition()
   const [isInputting, setIsInputting] = useState(false)
   const [showReflection, setShowReflection] = useState(false)
+  const [isEditingActualMinutes, setIsEditingActualMinutes] = useState(false)
   
   const [reflectionText, setReflectionText] = useState('')
+  const [editedActualMinutes, setEditedActualMinutes] = useState(
+    actualMinutes !== null && actualMinutes !== undefined ? String(actualMinutes) : '0'
+  )
   const [accumulatedMs, setAccumulatedMs] = useState(() => {
     if (typeof window === 'undefined' || !isSubTask || status === 'DONE') return 0
     try {
@@ -206,7 +210,19 @@ export default function TaskStatusButton({
     }
   }
 
+  const handleSaveActualMinutes = () => {
+    const parsed = Number(editedActualMinutes)
+    const normalizedMinutes = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0
+
+    startTransition(async () => {
+      await updateSubTaskActualMinutes(taskId, normalizedMinutes)
+      setEditedActualMinutes(String(normalizedMinutes))
+      setIsEditingActualMinutes(false)
+    })
+  }
+
   if (isDone) {
+    const actualMinutesLabel = actualMinutes ?? 0
     return (
       <>
         <div className="flex flex-col items-end gap-1">
@@ -216,8 +232,20 @@ export default function TaskStatusButton({
               disabled={isPending}
               className="btn text-xs border-emerald-300/80 bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/35"
             >
-              {isPending ? '...' : `✓ 完了 (実績: ${actualMinutes}分)`}
+              {isPending ? '...' : `✓ 完了 (実績: ${actualMinutesLabel}分)`}
             </button>
+            {isSubTask && (
+              <button
+                onClick={() => {
+                  setEditedActualMinutes(String(actualMinutesLabel))
+                  setIsEditingActualMinutes(true)
+                }}
+                disabled={isPending}
+                className="btn btn-secondary text-xs"
+              >
+                実績編集
+              </button>
+            )}
             {reflection && (
               <button
                 onClick={() => setShowReflection(true)}
@@ -244,6 +272,44 @@ export default function TaskStatusButton({
                   className="btn btn-secondary"
                 >
                   閉じる
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {isEditingActualMinutes && isSubTask && typeof document !== 'undefined' && createPortal(
+          <div className="modal-backdrop">
+            <div className="modal-card max-h-[calc(100vh-2rem)] overflow-y-auto">
+              <h3 className="text-xl font-bold text-white mb-4">実績時間を編集</h3>
+              <p className="text-sm text-gray-200 mb-3">
+                ストップし忘れた場合の補正として、完了後でも実績時間を修正できます。
+              </p>
+              <input
+                type="number"
+                min={0}
+                value={editedActualMinutes}
+                onChange={(e) => setEditedActualMinutes(e.target.value)}
+                className="form-control mb-4"
+                placeholder="実績時間（分）"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setEditedActualMinutes(String(actualMinutesLabel))
+                    setIsEditingActualMinutes(false)
+                  }}
+                  className="btn btn-secondary"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleSaveActualMinutes}
+                  disabled={isPending}
+                  className="btn btn-primary"
+                >
+                  {isPending ? '...' : '保存'}
                 </button>
               </div>
             </div>

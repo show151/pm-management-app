@@ -195,6 +195,11 @@ DATABASE_URL=
 DIRECT_URL=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+WEB_PUSH_VAPID_PUBLIC_KEY=
+NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY=
+WEB_PUSH_SUBJECT=mailto:admin@example.com
+NOTIFICATION_CRON_SECRET=
 ```
 
 ```bash
@@ -202,6 +207,20 @@ npx prisma migrate dev
 npx prisma generate
 npm run dev
 ```
+
+通知ディスパッチは Cron などから以下を定期実行してください。
+
+```bash
+curl -X POST "http://localhost:3000/api/notifications/dispatch" \
+  -H "x-notification-secret: ${NOTIFICATION_CRON_SECRET}"
+```
+
+通知イベント（タスク期限系）は以下を自動登録します。
+
+- 期限の1週間前
+- 期限の1日前
+- 期限の30分前
+- 期限超過直後
 
 ### 本番ビルド
 

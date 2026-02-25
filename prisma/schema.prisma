@@ -17,6 +17,9 @@ model User {
   name      String?
   projects  Project[]
   memberships ProjectMember[]
+  notificationSubscriptions NotificationSubscription[]
+  notificationPreference    NotificationPreference?
+  notificationEvents        NotificationEvent[]
   createdAt DateTime  @default(now())
 }
 
@@ -95,4 +98,104 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+}
+
+enum NotificationEventType {
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  TASK_ASSIGNED
+  TASK_STATUS_CHANGED
+  TEST
+}
+
+enum NotificationEventStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELED
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model NotificationSubscription {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  platform   String?
+  userAgent  String?
+  locale     String?
+  isActive   Boolean  @default(true)
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  deliveries NotificationDelivery[]
+
+  @@index([userId, isActive])
+}
+
+model NotificationPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timezone         String   @default("Asia/Tokyo")
+  quietHoursStart  Int?
+  quietHoursEnd    Int?
+  pushEnabled      Boolean  @default(true)
+  dueSoonEnabled   Boolean  @default(true)
+  overdueEnabled   Boolean  @default(true)
+  assignmentEnabled Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model NotificationEvent {
+  id          String                  @id @default(uuid())
+  userId      String
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId   String?
+  taskId      String?
+  type        NotificationEventType
+  title       String
+  body        String
+  url         String?
+  payload     Json?
+  dedupeKey   String                  @unique
+  scheduledAt DateTime
+  sentAt      DateTime?
+  status      NotificationEventStatus @default(PENDING)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  deliveries NotificationDelivery[]
+
+  @@index([status, scheduledAt])
+  @@index([userId, status])
+}
+
+model NotificationDelivery {
+  id             String                     @id @default(uuid())
+  eventId        String
+  event          NotificationEvent          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   NotificationSubscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  status         NotificationDeliveryStatus @default(PENDING)
+  statusCode     Int?
+  errorCode      String?
+  errorMessage   String?
+  attempt        Int                        @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([eventId, status])
+  @@index([subscriptionId, status])
 }

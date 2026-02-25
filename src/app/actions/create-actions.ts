@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { assertProjectAccess, getCurrentUserOrThrow } from '@/lib/project-access'
+import { syncTaskDeadlineEvents } from '@/lib/notifications'
 
 export async function createTask(formData: FormData) {
   const authUser = await getCurrentUserOrThrow()
@@ -25,7 +26,7 @@ export async function createTask(formData: FormData) {
 
   await assertProjectAccess(projectId, authUser.id)
 
-  await prisma.task.create({
+  const createdTask = await prisma.task.create({
     data: {
       title,
       projectId,
@@ -39,6 +40,7 @@ export async function createTask(formData: FormData) {
       status: 'TODO',
     },
   })
+  await syncTaskDeadlineEvents(createdTask.id)
 
   revalidatePath('/')
   revalidatePath(`/project/${projectId}`)

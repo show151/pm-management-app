@@ -11,6 +11,7 @@ import ProjectActions from '@/components/ProjectActions'
 import Link from 'next/link'
 import Dashboard from '@/components/Dashboard'
 import TimelineChart from '@/components/TimelineChart'
+import PushNotificationPanel from '@/components/PushNotificationPanel'
 
 function formatTimeLeft(dueDate: Date) {
   const deadline = new Date(
@@ -181,6 +182,7 @@ export default async function Home() {
       <div className="app-container">
         
         <Header email={user?.email || 'Guest'} name={dbUser?.name || fallbackName} />
+        <PushNotificationPanel />
 
         {/* ↓ ここにダッシュボードを配置 */}
         <Dashboard tasks={allTasksForDashboard} />

@@ -78,7 +78,7 @@ export default function TimelineChart({ title, emptyMessage, items }: Props) {
         <table className="min-w-max border-collapse text-xs">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-gray-900 border border-gray-700 px-3 py-2 text-left text-gray-200 min-w-44">
+              <th className="bg-gray-900 border border-gray-700 px-3 py-2 text-left text-gray-200 min-w-44">
                 項目
               </th>
               {days.map((day) => (
@@ -96,7 +96,7 @@ export default function TimelineChart({ title, emptyMessage, items }: Props) {
 
               return (
                 <tr key={item.id}>
-                  <td className="sticky left-0 z-10 bg-gray-900 border border-gray-700 px-3 py-2 text-white">
+                  <td className="bg-gray-900 border border-gray-700 px-3 py-2 text-white">
                     <div className="flex items-center gap-2">
                       <span className={`inline-block w-2.5 h-2.5 rounded-full ${isCompleted ? 'bg-gray-400' : color.dot}`} />
                       <div className="min-w-0">

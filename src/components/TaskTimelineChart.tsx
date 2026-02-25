@@ -128,7 +128,7 @@ export default function TaskTimelineChart({ items }: Props) {
         <table className="min-w-max border-collapse text-xs">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-gray-900 border border-gray-700 px-3 py-2 text-left text-gray-200 min-w-44">
+              <th className="bg-gray-900 border border-gray-700 px-3 py-2 text-left text-gray-200 min-w-44">
                 タスク
               </th>
               {days.map((day) => (
@@ -145,7 +145,7 @@ export default function TaskTimelineChart({ items }: Props) {
 
               return (
                 <tr key={item.id}>
-                  <td className="sticky left-0 z-10 bg-gray-900 border border-gray-700 px-3 py-2 text-white">
+                  <td className="bg-gray-900 border border-gray-700 px-3 py-2 text-white">
                     <button
                       type="button"
                       onClick={() => !item.isChild && toggleParent(item.parentId)}

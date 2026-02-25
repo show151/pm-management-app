@@ -38,7 +38,12 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  try {
+    await supabase.auth.getUser()
+  } catch {
+    // Supabase到達不可時でもページレンダリングは継続する
+    return response
+  }
   return response
 }
 

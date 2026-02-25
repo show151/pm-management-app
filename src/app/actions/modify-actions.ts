@@ -11,6 +11,7 @@ import {
   assertTaskAccess,
   getCurrentUserOrThrow,
 } from '@/lib/project-access'
+import { cancelPendingTaskNotifications, syncTaskDeadlineEvents } from '@/lib/notifications'
 
 // ========== タスク関連 ==========
 
@@ -27,6 +28,7 @@ export async function undoTask(taskId: string) {
       actualEndAt: null,
     },
   })
+  await syncTaskDeadlineEvents(taskId)
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
 }
@@ -84,6 +86,7 @@ export async function completeTask(taskId: string, actualMinutes: number, reflec
       actualStartAt: task.status === 'TODO' ? new Date() : undefined,
     },
   })
+  await cancelPendingTaskNotifications(taskId)
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
 }
@@ -97,6 +100,7 @@ export async function updateTaskDate(taskId: string, dateStr: string) {
     where: { id: taskId },
     data: { dueDate },
   })
+  await syncTaskDeadlineEvents(taskId)
   
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
@@ -105,6 +109,7 @@ export async function updateTaskDate(taskId: string, dateStr: string) {
 export async function deleteTask(taskId: string) {
   const authUser = await getCurrentUserOrThrow()
   const task = await assertTaskAccess(taskId, authUser.id)
+  await cancelPendingTaskNotifications(taskId)
 
   await prisma.task.delete({
     where: { id: taskId }
@@ -141,6 +146,7 @@ export async function updateTaskDetails(taskId: string, title: string, importanc
       dueDate
     }
   })
+  await syncTaskDeadlineEvents(taskId)
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
 }

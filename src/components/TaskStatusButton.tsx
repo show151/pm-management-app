@@ -296,11 +296,11 @@ export default function TaskStatusButton({
       )}
 
       {isSubTask ? (
-        <div className="flex flex-col items-end gap-2 w-full lg:w-auto">
+        <div className="flex flex-col items-start sm:items-end gap-2 w-full">
           <div className="text-[11px] text-gray-300 tabular-nums">
             {elapsedMinutesView}:{String(elapsedSecondsView).padStart(2, '0')} ({elapsedMinutesForComplete}分)
           </div>
-          <div className="flex flex-wrap justify-end items-center gap-1">
+          <div className="flex flex-wrap justify-start sm:justify-end items-center gap-1 w-full sm:w-auto">
             {isRunning ? (
               <button
                 onClick={handleTimerStop}

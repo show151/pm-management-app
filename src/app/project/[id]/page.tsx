@@ -165,24 +165,46 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   {task.children.length > 0 && (
                     <div className="space-y-2 mb-3">
                       {task.children.map((subTask) => (
-                        <div key={subTask.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-gray-700 p-2 rounded border border-gray-600 text-sm">
-                          <div className="flex items-center gap-2 flex-grow min-w-0">
-                            <span className="text-gray-500">└</span>
-                            <TaskDate date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
-                            <span className={`min-w-0 break-words ${subTask.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}`}>
-                              {subTask.title}
-                            </span>
-                            {subTask.estimatedMinutes && (
-                              <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
-                                {subTask.estimatedMinutes}分
+                        <div
+                          key={subTask.id}
+                          className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 bg-gray-700 p-2.5 rounded border border-gray-600 text-sm"
+                        >
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex items-start gap-2 min-w-0">
+                              <span className="text-gray-500 leading-6 shrink-0">└</span>
+                              <div className="shrink-0">
+                                <TaskDate date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
+                              </div>
+                              <span
+                                className={`min-w-0 break-words leading-6 ${
+                                  subTask.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'
+                                }`}
+                              >
+                                {subTask.title}
                               </span>
-                            )}
-                            <TaskActions taskId={subTask.id} title={subTask.title} importance={subTask.importance} urgency={subTask.urgency} estimatedMinutes={subTask.estimatedMinutes} startDate={subTask.startDate} dueDate={subTask.dueDate} isSubTask={true} />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 pl-5 md:pl-0">
+                              {subTask.estimatedMinutes && (
+                                <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
+                                  {subTask.estimatedMinutes}分
+                                </span>
+                              )}
+                              <TaskActions
+                                taskId={subTask.id}
+                                title={subTask.title}
+                                importance={subTask.importance}
+                                urgency={subTask.urgency}
+                                estimatedMinutes={subTask.estimatedMinutes}
+                                startDate={subTask.startDate}
+                                dueDate={subTask.dueDate}
+                                isSubTask={true}
+                              />
+                            </div>
                           </div>
-                          <div className="scale-90 sm:origin-right self-end sm:self-auto">
-                            <TaskStatusButton 
-                              taskId={subTask.id} 
-                              status={subTask.status} 
+                          <div className="w-full md:w-auto md:shrink-0">
+                            <TaskStatusButton
+                              taskId={subTask.id}
+                              status={subTask.status}
                               actualMinutes={subTask.actualMinutes}
                               estimatedMinutes={subTask.estimatedMinutes}
                               reflection={subTask.reflection}
@@ -203,18 +225,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                       ＋ サブタスクを追加
                     </summary>
                     <div className="pl-4 border-l-2 border-blue-700">
-                      <form action={createTask} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 items-center">
+                      <form action={createTask} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 items-center">
                         <input type="hidden" name="projectId" value={project.id} />
                         <input type="hidden" name="parentId" value={task.id} />
                         <input 
                           type="date" 
                           name="dueDate" 
-                          className="form-control px-1 py-1 text-xs w-full sm:w-28 [color-scheme:dark]" 
+                          className="form-control px-2 py-1 text-xs w-full md:w-auto [color-scheme:dark]"
                         />
                         <input 
                           name="title" 
                           placeholder="小タスク名..." 
-                          className="form-control px-2 py-1 sm:col-span-2 lg:col-span-1"
+                          className="form-control px-2 py-1 md:col-span-2 lg:col-span-1"
                           required 
                         />
                         <input 
@@ -223,7 +245,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                           placeholder="分" 
                           className="form-control w-full px-1 py-1"
                         />
-                        <div className="sm:col-span-2 lg:col-span-1 flex gap-2">
+                        <div className="md:col-span-2 lg:col-span-1 flex gap-2">
                           <button type="submit" className="btn btn-primary flex-1 px-3 py-1">追加</button>
                           <CloseDetailsButton className="btn btn-secondary flex-1 px-3 py-1 text-center">
                             キャンセル

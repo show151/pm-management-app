@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/notifications/dispatch?limit=200",
-      "schedule": "*/5 * * * *"
+      "path": "/api/notifications/dispatch?limit=300",
+      "schedule": "*/7 * * * *"
     }
   ]
 }

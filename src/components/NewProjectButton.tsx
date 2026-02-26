@@ -41,13 +41,13 @@ export default function NewProjectButton({ className = '' }: { className?: strin
               <input
                 name="startDate"
                 type="date"
-                className="form-control mb-3 [color-scheme:dark]"
+                className="form-control mb-3 [scheme:dark]"
               />
               <label className="text-xs text-gray-300 block mb-1">期限日</label>
               <input
                 name="dueDate"
                 type="date"
-                className="form-control mb-4 [color-scheme:dark]"
+                className="form-control mb-4 [scheme:dark]"
               />
               <div className="flex gap-2 justify-end">
                 <button

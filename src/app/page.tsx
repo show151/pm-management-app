@@ -195,7 +195,7 @@ export default async function Home() {
         <div className="ui-panel rounded-xl p-3 sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           {urgentTasks.length > 0 && (
-            <div className="w-full flex-grow rounded-lg border border-red-500/70 bg-red-900/45 p-3 sm:p-4">
+            <div className="w-full grow rounded-lg border border-red-500/70 bg-red-900/45 p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xl">⚠️</span>
                 <h3 className="text-sm font-bold text-white">期限が近いタスク ({urgentTasks.length})</h3>
@@ -248,7 +248,7 @@ export default async function Home() {
                     className="absolute inset-0 rounded-2xl z-10"
                   />
                   <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-3">
-                    <div className="flex-grow space-y-2 rounded-lg bg-black/15 p-3">
+                    <div className="grow space-y-2 rounded-lg bg-black/15 p-3">
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                         <h2 className={`text-lg sm:text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
                         <div className="pointer-events-auto">
@@ -304,7 +304,7 @@ export default async function Home() {
                     className="absolute inset-0 rounded-2xl z-10"
                   />
                   <div className="pointer-events-none relative z-20 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-3">
-                    <div className="flex-grow space-y-2 rounded-lg bg-black/15 p-3">
+                    <div className="grow space-y-2 rounded-lg bg-black/15 p-3">
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                         <h2 className={`text-lg sm:text-xl font-semibold text-white ${project.status === 'COMPLETED' ? 'line-through' : ''}`}>{project.title}</h2>
                         <div className="pointer-events-auto">

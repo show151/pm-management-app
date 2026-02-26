@@ -38,12 +38,12 @@ export default function NewTaskForm({ projectId }: { projectId: string }) {
               <input 
                 type="date" 
                 name="startDate"
-                className="form-control mb-3 [color-scheme:dark]"
+                className="form-control mb-3 [scheme:dark]"
               />
               <input 
                 type="date" 
                 name="dueDate"
-                className="form-control mb-3 [color-scheme:dark]"
+                className="form-control mb-3 [scheme:dark]"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">

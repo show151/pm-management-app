@@ -19,6 +19,32 @@ type Props = {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
+type TimerSnapshot = { accumulatedMs: number; runningSinceMs: number | null }
+
+function readTimerSnapshot(key: string): TimerSnapshot {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return { accumulatedMs: 0, runningSinceMs: null }
+    const parsed = JSON.parse(raw) as Partial<TimerSnapshot>
+    return {
+      accumulatedMs: Number(parsed.accumulatedMs) || 0,
+      runningSinceMs:
+        parsed.runningSinceMs !== null && parsed.runningSinceMs !== undefined
+          ? Number(parsed.runningSinceMs) || null
+          : null,
+    }
+  } catch {
+    return { accumulatedMs: 0, runningSinceMs: null }
+  }
+}
+
+function writeTimerSnapshot(key: string, snapshot: TimerSnapshot) {
+  try {
+    localStorage.setItem(key, JSON.stringify(snapshot))
+  } catch {
+    // ignore storage failures (private mode, quota, etc.)
+  }
+}
 
 function startOfDayMs(value: Date | null | undefined) {
   if (!value) return null
@@ -83,31 +109,16 @@ export default function TaskStatusButton({
   const [editedActualMinutes, setEditedActualMinutes] = useState(
     actualMinutes !== null && actualMinutes !== undefined ? String(actualMinutes) : '0'
   )
+  const timerStorageKey = `subtask_timer_${taskId}`
   const [accumulatedMs, setAccumulatedMs] = useState(() => {
     if (typeof window === 'undefined' || !isSubTask || status === 'DONE') return 0
-    try {
-      const raw = localStorage.getItem(`subtask_timer_${taskId}`)
-      if (!raw) return 0
-      const parsed = JSON.parse(raw) as { accumulatedMs: number; runningSinceMs: number | null }
-      return parsed.accumulatedMs || 0
-    } catch {
-      return 0
-    }
+    return readTimerSnapshot(timerStorageKey).accumulatedMs
   })
   const [runningSinceMs, setRunningSinceMs] = useState<number | null>(() => {
     if (typeof window === 'undefined' || !isSubTask || status === 'DONE') return null
-    try {
-      const raw = localStorage.getItem(`subtask_timer_${taskId}`)
-      if (!raw) return null
-      const parsed = JSON.parse(raw) as { accumulatedMs: number; runningSinceMs: number | null }
-      return parsed.runningSinceMs ?? null
-    } catch {
-      return null
-    }
+    return readTimerSnapshot(timerStorageKey).runningSinceMs
   })
   const [nowMs, setNowMs] = useState(() => Date.now())
-
-  const timerStorageKey = `subtask_timer_${taskId}`
 
   const isDone = status === 'DONE'
   const isInProgress = status === 'IN_PROGRESS'
@@ -126,10 +137,7 @@ export default function TaskStatusButton({
 
   useEffect(() => {
     if (!isSubTask || isDone) return
-    localStorage.setItem(
-      timerStorageKey,
-      JSON.stringify({ accumulatedMs, runningSinceMs })
-    )
+    writeTimerSnapshot(timerStorageKey, { accumulatedMs, runningSinceMs })
   }, [isSubTask, isDone, timerStorageKey, accumulatedMs, runningSinceMs])
 
   useEffect(() => {
@@ -167,21 +175,26 @@ export default function TaskStatusButton({
       if (isTodo) {
         await startTask(taskId)
       }
-      setNowMs(Date.now())
-      setRunningSinceMs(Date.now())
+      const startedAt = Date.now()
+      writeTimerSnapshot(timerStorageKey, { accumulatedMs, runningSinceMs: startedAt })
+      setNowMs(startedAt)
+      setRunningSinceMs(startedAt)
     })
   }
 
   const handleTimerStop = () => {
     if (!runningSinceMs) return
     const stoppedAt = Date.now()
-    setAccumulatedMs((prev) => prev + (stoppedAt - runningSinceMs))
+    const nextAccumulatedMs = accumulatedMs + (stoppedAt - runningSinceMs)
+    writeTimerSnapshot(timerStorageKey, { accumulatedMs: nextAccumulatedMs, runningSinceMs: null })
+    setAccumulatedMs(nextAccumulatedMs)
     setRunningSinceMs(null)
     setNowMs(stoppedAt)
   }
 
   const handleTimerReset = () => {
     if (isRunning) return
+    writeTimerSnapshot(timerStorageKey, { accumulatedMs: 0, runningSinceMs: null })
     setAccumulatedMs(0)
     setNowMs(Date.now())
   }

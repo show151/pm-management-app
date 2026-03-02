@@ -6,6 +6,28 @@ type SubscriptionStatus = {
   subscribed: boolean
 }
 
+type NotificationPreference = {
+  timezone: string
+  quietHoursStart: number | null
+  quietHoursEnd: number | null
+  pushEnabled: boolean
+  dueSoonEnabled: boolean
+  overdueEnabled: boolean
+  assignmentEnabled: boolean
+}
+
+const DEFAULT_PREFERENCE: NotificationPreference = {
+  timezone: 'Asia/Tokyo',
+  quietHoursStart: null,
+  quietHoursEnd: null,
+  pushEnabled: true,
+  dueSoonEnabled: true,
+  overdueEnabled: true,
+  assignmentEnabled: true,
+}
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i)
+
 function detectPlatform() {
   if (typeof navigator === 'undefined') return 'unknown'
   const ua = navigator.userAgent
@@ -47,7 +69,9 @@ export default function PushNotificationPanel() {
   const [permission, setPermission] = useState<'default' | 'denied' | 'granted'>('default')
   const [subscribed, setSubscribed] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
+  const [isSavingPreference, setIsSavingPreference] = useState(false)
   const [message, setMessage] = useState('')
+  const [preference, setPreference] = useState<NotificationPreference>(DEFAULT_PREFERENCE)
 
   const platform = useMemo(() => detectPlatform(), [])
   const iosNeedsInstallGuide = platform === 'ios' && !isStandaloneMode()
@@ -72,10 +96,30 @@ export default function PushNotificationPanel() {
     async function init() {
       try {
         await navigator.serviceWorker.register('/sw.js')
-        const response = await fetch('/api/notifications/subscriptions', { method: 'GET' })
-        if (!mounted || !response.ok) return
-        const data = (await response.json()) as SubscriptionStatus
-        setSubscribed(Boolean(data.subscribed))
+        const [subscriptionRes, preferenceRes] = await Promise.all([
+          fetch('/api/notifications/subscriptions', { method: 'GET' }),
+          fetch('/api/notifications/preferences', { method: 'GET' }),
+        ])
+
+        if (!mounted) return
+        if (subscriptionRes.ok) {
+          const data = (await subscriptionRes.json()) as SubscriptionStatus
+          setSubscribed(Boolean(data.subscribed))
+        }
+        if (preferenceRes.ok) {
+          const data = (await preferenceRes.json()) as Partial<NotificationPreference>
+          setPreference({
+            timezone: typeof data.timezone === 'string' ? data.timezone : DEFAULT_PREFERENCE.timezone,
+            quietHoursStart:
+              typeof data.quietHoursStart === 'number' ? data.quietHoursStart : DEFAULT_PREFERENCE.quietHoursStart,
+            quietHoursEnd:
+              typeof data.quietHoursEnd === 'number' ? data.quietHoursEnd : DEFAULT_PREFERENCE.quietHoursEnd,
+            pushEnabled: Boolean(data.pushEnabled ?? DEFAULT_PREFERENCE.pushEnabled),
+            dueSoonEnabled: Boolean(data.dueSoonEnabled ?? DEFAULT_PREFERENCE.dueSoonEnabled),
+            overdueEnabled: Boolean(data.overdueEnabled ?? DEFAULT_PREFERENCE.overdueEnabled),
+            assignmentEnabled: Boolean(data.assignmentEnabled ?? DEFAULT_PREFERENCE.assignmentEnabled),
+          })
+        }
       } catch {
         if (mounted) {
           setMessage('通知機能の初期化に失敗しました。')
@@ -191,6 +235,39 @@ export default function PushNotificationPanel() {
     }
   }
 
+  const handleSavePreference = async () => {
+    setIsSavingPreference(true)
+    setMessage('')
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || preference.timezone || 'UTC'
+      const response = await fetch('/api/notifications/preferences', {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          timezone,
+          quietHoursStart: preference.quietHoursStart,
+          quietHoursEnd: preference.quietHoursEnd,
+          pushEnabled: preference.pushEnabled,
+          dueSoonEnabled: preference.dueSoonEnabled,
+          overdueEnabled: preference.overdueEnabled,
+          assignmentEnabled: preference.assignmentEnabled,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('PREFERENCE_SAVE_FAILED')
+      }
+      setPreference((prev) => ({ ...prev, timezone }))
+      setMessage('通知設定を保存しました。')
+    } catch {
+      setMessage('通知設定の保存に失敗しました。')
+    } finally {
+      setIsSavingPreference(false)
+    }
+  }
+
   if (!isSupported) {
     return (
       <section className="ui-panel rounded-xl p-3 sm:p-4">
@@ -242,6 +319,88 @@ export default function PushNotificationPanel() {
       <p className="text-xs text-gray-300">
         通知内容: 1週間前 / 1日前 / 30分前 / 期限超過
       </p>
+
+      <div className="space-y-2 rounded-lg border border-white/10 bg-black/15 p-3">
+        <p className="text-xs font-semibold text-gray-200">通知詳細設定</p>
+        <label className="flex items-center gap-2 text-xs text-gray-100">
+          <input
+            type="checkbox"
+            checked={preference.pushEnabled}
+            onChange={(e) => setPreference((prev) => ({ ...prev, pushEnabled: e.target.checked }))}
+          />
+          Push通知を有効化
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-100">
+          <input
+            type="checkbox"
+            checked={preference.dueSoonEnabled}
+            onChange={(e) => setPreference((prev) => ({ ...prev, dueSoonEnabled: e.target.checked }))}
+          />
+          期限前通知（1週間/1日/30分）
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-100">
+          <input
+            type="checkbox"
+            checked={preference.overdueEnabled}
+            onChange={(e) => setPreference((prev) => ({ ...prev, overdueEnabled: e.target.checked }))}
+          />
+          期限超過通知
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-100">
+          <input
+            type="checkbox"
+            checked={preference.assignmentEnabled}
+            onChange={(e) => setPreference((prev) => ({ ...prev, assignmentEnabled: e.target.checked }))}
+          />
+          アサイン通知
+        </label>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-100">
+          <span>静音時間</span>
+          <select
+            className="bg-black/30 border border-white/15 rounded px-2 py-1"
+            value={preference.quietHoursStart ?? ''}
+            onChange={(e) =>
+              setPreference((prev) => ({
+                ...prev,
+                quietHoursStart: e.target.value === '' ? null : Number(e.target.value),
+              }))
+            }
+          >
+            <option value="">未設定</option>
+            {HOUR_OPTIONS.map((hour) => (
+              <option key={`start-${hour}`} value={hour}>
+                {String(hour).padStart(2, '0')}:00
+              </option>
+            ))}
+          </select>
+          <span>〜</span>
+          <select
+            className="bg-black/30 border border-white/15 rounded px-2 py-1"
+            value={preference.quietHoursEnd ?? ''}
+            onChange={(e) =>
+              setPreference((prev) => ({
+                ...prev,
+                quietHoursEnd: e.target.value === '' ? null : Number(e.target.value),
+              }))
+            }
+          >
+            <option value="">未設定</option>
+            {HOUR_OPTIONS.map((hour) => (
+              <option key={`end-${hour}`} value={hour}>
+                {String(hour).padStart(2, '0')}:00
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={handleSavePreference}
+          disabled={isSavingPreference || isBusy}
+          className="btn btn-secondary"
+        >
+          {isSavingPreference ? '保存中...' : '通知設定を保存'}
+        </button>
+      </div>
       {message && <p className="text-xs text-sky-200">{message}</p>}
     </section>
   )

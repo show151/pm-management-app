@@ -66,11 +66,27 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           { createdAt: 'asc' }
         ],
         include: {
+          assignee: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
           children: {
             orderBy: [
               { dueDate: 'asc' },
               { createdAt: 'asc' }
-            ]
+            ],
+            include: {
+              assignee: {
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                },
+              },
+            },
           }
         }
       }
@@ -82,6 +98,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   }
 
   const isOwner = project.userId === user.id
+  const assigneeOptions = [
+    project.user,
+    ...project.members.map((member) => member.user),
+  ]
+    .reduce<Array<{ id: string; label: string }>>((acc, member) => {
+      if (acc.some((item) => item.id === member.id)) return acc
+      const labelBase = member.name?.trim() || member.email
+      const label = member.id === project.userId ? `${labelBase} (オーナー)` : labelBase
+      acc.push({ id: member.id, label })
+      return acc
+    }, [])
+
   const taskTimelineItems = project.tasks.map((task) => ({
     id: task.id,
     title: task.title,
@@ -125,7 +153,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <TaskTimelineChart items={taskTimelineItems} />
 
         <div className="mb-6">
-          <NewTaskForm projectId={project.id} />
+          <NewTaskForm projectId={project.id} assigneeOptions={assigneeOptions} />
         </div>
 
         <div className="space-y-4">
@@ -138,13 +166,27 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                       <h3 className={`font-bold text-lg ${task.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}`}>
                         {task.title}
                       </h3>
-                      <TaskActions taskId={task.id} title={task.title} importance={task.importance} urgency={task.urgency} estimatedMinutes={task.estimatedMinutes} startDate={task.startDate} dueDate={task.dueDate} isSubTask={false} />
+                      <TaskActions
+                        taskId={task.id}
+                        title={task.title}
+                        importance={task.importance}
+                        urgency={task.urgency}
+                        estimatedMinutes={task.estimatedMinutes}
+                        startDate={task.startDate}
+                        dueDate={task.dueDate}
+                        assigneeId={task.assigneeId}
+                        assigneeOptions={assigneeOptions}
+                        isSubTask={false}
+                      />
                     </div>
                     <TaskDate startDate={task.startDate} date={task.dueDate} isDone={task.status === 'DONE'} />
                     <div className="text-xs text-gray-300 mt-1 flex flex-wrap gap-2">
                       <span className="bg-blue-400 text-white px-2 py-0.5 rounded">重要: {task.importance}</span>
                       <span className="bg-pink-400 text-white px-2 py-0.5 rounded">緊急: {task.urgency}</span>
                       <span className="bg-gray-700 text-gray-200 px-2 py-0.5 rounded">予定: {task.estimatedMinutes}分</span>
+                      <span className="bg-indigo-500/70 text-white px-2 py-0.5 rounded">
+                        担当: {task.assignee?.name || task.assignee?.email || '未割当'}
+                      </span>
                     </div>
                   </div>
                   <TaskStatusButton 
@@ -197,8 +239,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                                 estimatedMinutes={subTask.estimatedMinutes}
                                 startDate={subTask.startDate}
                                 dueDate={subTask.dueDate}
+                                assigneeId={subTask.assigneeId}
+                                assigneeOptions={assigneeOptions}
                                 isSubTask={true}
                               />
+                              <span className="text-[10px] text-indigo-200 bg-indigo-900/40 px-1.5 py-0.5 rounded">
+                                担当: {subTask.assignee?.name || subTask.assignee?.email || '未割当'}
+                              </span>
                             </div>
                           </div>
                           <div className="w-full md:w-auto md:shrink-0">
@@ -245,6 +292,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                           placeholder="分" 
                           className="form-control w-full px-1 py-1"
                         />
+                        <select name="assigneeId" className="form-control px-2 py-1 text-xs w-full md:w-auto" defaultValue="">
+                          <option value="">担当: 未割当</option>
+                          {assigneeOptions.map((option) => (
+                            <option key={`sub-assignee-${task.id}-${option.id}`} value={option.id}>
+                              担当: {option.label}
+                            </option>
+                          ))}
+                        </select>
                         <div className="md:col-span-2 lg:col-span-1 flex gap-2">
                           <button type="submit" className="btn btn-primary flex-1 px-3 py-1">追加</button>
                           <CloseDetailsButton className="btn btn-secondary flex-1 px-3 py-1 text-center">

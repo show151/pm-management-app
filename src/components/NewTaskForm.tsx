@@ -5,7 +5,18 @@ import { createTask } from '@/app/actions/create-actions'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 
-export default function NewTaskForm({ projectId }: { projectId: string }) {
+type AssigneeOption = {
+  id: string
+  label: string
+}
+
+export default function NewTaskForm({
+  projectId,
+  assigneeOptions,
+}: {
+  projectId: string
+  assigneeOptions: AssigneeOption[]
+}) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -67,6 +78,18 @@ export default function NewTaskForm({ projectId }: { projectId: string }) {
                 placeholder="見積(分)"
                 className="form-control mb-4"
               />
+
+              <div className="mb-4">
+                <label className="text-xs text-gray-300 block mb-1">担当者</label>
+                <select name="assigneeId" className="form-control" defaultValue="">
+                  <option value="">未割当</option>
+                  {assigneeOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="flex gap-2 justify-end">
                 <button

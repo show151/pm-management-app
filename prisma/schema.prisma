@@ -17,6 +17,7 @@ model User {
   name      String?
   projects  Project[]
   memberships ProjectMember[]
+  assignedTasks Task[] @relation("TaskAssignee")
   notificationSubscriptions NotificationSubscription[]
   notificationPreference    NotificationPreference?
   notificationEvents        NotificationEvent[]
@@ -84,6 +85,8 @@ model Task {
   parentId String?
   parent   Task?   @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
   children Task[]  @relation("SubTasks")
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
 
   // --- リレーション ---
   projectId String
@@ -91,6 +94,8 @@ model Task {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([assigneeId])
 }
 
 // タスクの状態

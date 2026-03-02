@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { assertProjectAccess, getCurrentUserOrThrow } from '@/lib/project-access'
-import { syncTaskDeadlineEvents } from '@/lib/notifications'
+import { enqueueTaskAssignedEvent, syncTaskDeadlineEvents } from '@/lib/notifications'
 
 export async function createTask(formData: FormData) {
   const authUser = await getCurrentUserOrThrow()
@@ -16,6 +16,8 @@ export async function createTask(formData: FormData) {
   const urgency = formData.get('urgency')
   const estimatedMinutes = formData.get('estimatedMinutes')
   const parentId = formData.get('parentId') as string | null
+  const assigneeIdRaw = (formData.get('assigneeId') as string | null) ?? ''
+  const assigneeId = assigneeIdRaw.trim() || null
 
   const startDateStr = formData.get('startDate') as string
   const dueDateStr = formData.get('dueDate') as string
@@ -26,11 +28,25 @@ export async function createTask(formData: FormData) {
 
   await assertProjectAccess(projectId, authUser.id)
 
+  if (assigneeId) {
+    const validAssignee = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        OR: [{ userId: assigneeId }, { members: { some: { userId: assigneeId } } }],
+      },
+      select: { id: true },
+    })
+    if (!validAssignee) {
+      throw new Error('INVALID_ASSIGNEE')
+    }
+  }
+
   const createdTask = await prisma.task.create({
     data: {
       title,
       projectId,
       parentId: parentId || null,
+      assigneeId,
       // 数値型に変換して保存
       importance: Number(importance) || 3,
       urgency: Number(urgency) || 3,
@@ -40,6 +56,9 @@ export async function createTask(formData: FormData) {
       status: 'TODO',
     },
   })
+  if (assigneeId) {
+    await enqueueTaskAssignedEvent(createdTask.id, assigneeId)
+  }
   await syncTaskDeadlineEvents(createdTask.id)
 
   revalidatePath('/')

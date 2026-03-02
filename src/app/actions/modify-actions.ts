@@ -11,7 +11,12 @@ import {
   assertTaskAccess,
   getCurrentUserOrThrow,
 } from '@/lib/project-access'
-import { cancelPendingTaskNotifications, syncTaskDeadlineEvents } from '@/lib/notifications'
+import {
+  cancelPendingTaskNotifications,
+  enqueueTaskAssignedEvent,
+  enqueueTaskStatusChangedEvents,
+  syncTaskDeadlineEvents,
+} from '@/lib/notifications'
 
 // ========== タスク関連 ==========
 
@@ -28,6 +33,7 @@ export async function undoTask(taskId: string) {
       actualEndAt: null,
     },
   })
+  await enqueueTaskStatusChangedEvents(taskId, 'TODO')
   await syncTaskDeadlineEvents(taskId)
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
@@ -44,6 +50,7 @@ export async function startTask(taskId: string) {
       actualStartAt: new Date(),
     },
   })
+  await enqueueTaskStatusChangedEvents(taskId, 'IN_PROGRESS')
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
 }
@@ -86,6 +93,7 @@ export async function completeTask(taskId: string, actualMinutes: number, reflec
       actualStartAt: task.status === 'TODO' ? new Date() : undefined,
     },
   })
+  await enqueueTaskStatusChangedEvents(taskId, 'DONE')
   await cancelPendingTaskNotifications(taskId)
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)
@@ -181,11 +189,41 @@ export async function updateTask(taskId: string, title: string) {
   revalidatePath(`/project/${task.projectId}`)
 }
 
-export async function updateTaskDetails(taskId: string, title: string, importance: number, urgency: number, estimatedMinutes: number, startDateStr?: string, dueDateStr?: string) {
+export async function updateTaskDetails(
+  taskId: string,
+  title: string,
+  importance: number,
+  urgency: number,
+  estimatedMinutes: number,
+  startDateStr?: string,
+  dueDateStr?: string,
+  assigneeIdRaw?: string
+) {
   const authUser = await getCurrentUserOrThrow()
   const task = await assertTaskAccess(taskId, authUser.id)
   const startDate = startDateStr ? new Date(startDateStr) : null
   const dueDate = dueDateStr ? new Date(dueDateStr) : null
+  const assigneeId = assigneeIdRaw?.trim() ? assigneeIdRaw.trim() : null
+
+  const currentTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { assigneeId: true },
+  })
+  const previousAssigneeId = currentTask?.assigneeId ?? null
+
+  if (assigneeId) {
+    const validAssignee = await prisma.project.findFirst({
+      where: {
+        id: task.projectId,
+        OR: [{ userId: assigneeId }, { members: { some: { userId: assigneeId } } }],
+      },
+      select: { id: true },
+    })
+    if (!validAssignee) {
+      throw new Error('INVALID_ASSIGNEE')
+    }
+  }
+
   await prisma.task.update({
     where: { id: taskId },
     data: { 
@@ -194,9 +232,13 @@ export async function updateTaskDetails(taskId: string, title: string, importanc
       urgency,
       estimatedMinutes,
       startDate,
-      dueDate
+      dueDate,
+      assigneeId,
     }
   })
+  if (assigneeId && assigneeId !== previousAssigneeId) {
+    await enqueueTaskAssignedEvent(taskId, assigneeId)
+  }
   await syncTaskDeadlineEvents(taskId)
   revalidatePath('/')
   revalidatePath(`/project/${task.projectId}`)

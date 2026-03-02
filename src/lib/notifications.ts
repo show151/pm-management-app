@@ -365,6 +365,82 @@ export async function syncTaskDeadlineEvents(taskId: string) {
   }
 }
 
+export async function enqueueTaskStatusChangedEvents(taskId: string, nextStatus: 'TODO' | 'IN_PROGRESS' | 'DONE') {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      title: true,
+      projectId: true,
+      project: {
+        select: {
+          userId: true,
+          members: {
+            select: { userId: true },
+          },
+        },
+      },
+    },
+  })
+
+  if (!task) return
+
+  const recipientIds = new Set<string>([task.project.userId, ...task.project.members.map((member) => member.userId)])
+  const statusLabel =
+    nextStatus === 'TODO' ? '未着手' : nextStatus === 'IN_PROGRESS' ? '進行中' : '完了'
+  const url = `/project/${task.projectId}`
+
+  for (const userId of recipientIds) {
+    const scheduledAt = new Date()
+    await enqueueNotificationEvent({
+      userId,
+      projectId: task.projectId,
+      taskId: task.id,
+      type: NotificationEventType.TASK_STATUS_CHANGED,
+      title: 'タスク状態が更新されました',
+      body: `「${task.title}」が${statusLabel}になりました。`,
+      url,
+      payload: {
+        taskId: task.id,
+        projectId: task.projectId,
+        status: nextStatus,
+      },
+      scheduledAt,
+      dedupeKey: `task_status_changed:${userId}:${task.id}:${nextStatus}:${scheduledAt.getTime()}`,
+    })
+  }
+}
+
+export async function enqueueTaskAssignedEvent(taskId: string, assigneeUserId: string) {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      title: true,
+      projectId: true,
+    },
+  })
+
+  if (!task) return
+
+  const scheduledAt = new Date()
+  await enqueueNotificationEvent({
+    userId: assigneeUserId,
+    projectId: task.projectId,
+    taskId: task.id,
+    type: NotificationEventType.TASK_ASSIGNED,
+    title: 'タスクがアサインされました',
+    body: `「${task.title}」があなたに割り当てられました。`,
+    url: `/project/${task.projectId}`,
+    payload: {
+      taskId: task.id,
+      projectId: task.projectId,
+    },
+    scheduledAt,
+    dedupeKey: `task_assigned:${assigneeUserId}:${task.id}:${scheduledAt.getTime()}`,
+  })
+}
+
 export async function dispatchPendingNotifications(limit = 100) {
   const now = new Date()
   const pendingEvents = await prisma.notificationEvent.findMany({

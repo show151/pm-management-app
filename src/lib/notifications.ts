@@ -223,6 +223,8 @@ export async function updateNotificationPreference(input: {
   dueSoonEnabled?: boolean
   overdueEnabled?: boolean
   assignmentEnabled?: boolean
+  slackWebhookUrl?: string | null
+  slackEnabled?: boolean
 }) {
   await ensureUserRow(input.authUser)
   await getOrCreateNotificationPreference(input.authUser)
@@ -237,6 +239,8 @@ export async function updateNotificationPreference(input: {
       dueSoonEnabled: input.dueSoonEnabled,
       overdueEnabled: input.overdueEnabled,
       assignmentEnabled: input.assignmentEnabled,
+      slackWebhookUrl: input.slackWebhookUrl,
+      slackEnabled: input.slackEnabled,
     },
   })
 }
@@ -504,7 +508,28 @@ export async function dispatchPendingNotifications(limit = 100) {
     }
 
     const activeSubscriptions = event.user.notificationSubscriptions
-    if (activeSubscriptions.length === 0) {
+
+    let eventHasSuccess = false
+
+    // Slack Notification
+    if (pref.slackEnabled && pref.slackWebhookUrl) {
+      try {
+        const text = `*${event.title}*\n${event.body}\n${event.url ? `<${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${event.url}|詳細を見る>` : ''}`
+        await fetch(pref.slackWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: text,
+            mrkdwn: true,
+          }),
+        })
+        eventHasSuccess = true
+      } catch (err) {
+        console.error('Slack webhook failed:', err)
+      }
+    }
+
+    if (activeSubscriptions.length === 0 && !pref.slackEnabled) {
       await prisma.notificationEvent.update({
         where: { id: event.id },
         data: { status: NotificationEventStatus.FAILED },
@@ -512,8 +537,6 @@ export async function dispatchPendingNotifications(limit = 100) {
       failed += 1
       continue
     }
-
-    let eventHasSuccess = false
 
     for (const subscription of activeSubscriptions) {
       try {

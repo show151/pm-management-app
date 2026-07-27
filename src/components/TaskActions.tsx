@@ -2,7 +2,8 @@
 'use client'
 
 import { deleteTask, updateTaskDetails } from '@/app/actions/modify-actions'
-import { useState } from 'react'
+import { addDependency, removeDependency } from '@/app/actions/dependency-actions'
+import { useState, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 
 type TaskActionsProps = {
@@ -16,6 +17,8 @@ type TaskActionsProps = {
   assigneeId?: string | null
   assigneeOptions?: Array<{ id: string; label: string }>
   isSubTask?: boolean
+  predecessors?: Array<{ id: string; predecessorId: string; dependentId: string }>
+  allTasks?: Array<{ id: string; title: string; status: string }>
 }
 
 export default function TaskActions({
@@ -29,7 +32,10 @@ export default function TaskActions({
   assigneeId,
   assigneeOptions = [],
   isSubTask = false,
+  predecessors = [],
+  allTasks = [],
 }: TaskActionsProps) {
+  const [isPending, startTransition] = useTransition()
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(title)
   const [editImportance, setEditImportance] = useState(importance)
@@ -38,6 +44,11 @@ export default function TaskActions({
   const [editStartDate, setEditStartDate] = useState(startDate ? new Date(startDate).toISOString().split('T')[0] : '')
   const [editDueDate, setEditDueDate] = useState(dueDate ? new Date(dueDate).toISOString().split('T')[0] : '')
   const [editAssigneeId, setEditAssigneeId] = useState(assigneeId || '')
+  
+  const [selectedPredecessor, setSelectedPredecessor] = useState('')
+  const [depError, setDepError] = useState('')
+
+  const availablePredecessors = allTasks.filter(t => t.id !== taskId && !predecessors.some(p => p.predecessorId === t.id))
 
   const handleDelete = async () => {
     if (!confirm('このタスクを削除しますか？')) return
@@ -57,6 +68,25 @@ export default function TaskActions({
       editAssigneeId
     )
     setIsEditing(false)
+  }
+
+  const handleAddDependency = () => {
+    if (!selectedPredecessor) return
+    setDepError('')
+    startTransition(async () => {
+      const res = await addDependency(selectedPredecessor, taskId)
+      if (!res.ok) {
+        setDepError(res.message || 'エラーが発生しました')
+      } else {
+        setSelectedPredecessor('')
+      }
+    })
+  }
+
+  const handleRemoveDependency = (predecessorId: string) => {
+    startTransition(async () => {
+      await removeDependency(predecessorId, taskId)
+    })
   }
 
   if (isEditing) {
@@ -148,6 +178,50 @@ export default function TaskActions({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="text-xs text-gray-300 block mb-1">先行タスク</label>
+            <div className="space-y-2 mb-2">
+              {predecessors.map(dep => {
+                const pTask = allTasks.find(t => t.id === dep.predecessorId)
+                return (
+                  <div key={dep.id} className="flex items-center justify-between bg-gray-800 p-2 rounded text-xs text-gray-200">
+                    <span>{pTask ? pTask.title : '不明なタスク'}</span>
+                    <button 
+                      type="button" 
+                      className="text-red-400 hover:text-red-300 ml-2 disabled:opacity-50"
+                      onClick={() => handleRemoveDependency(dep.predecessorId)}
+                      disabled={isPending}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={selectedPredecessor}
+                onChange={(e) => setSelectedPredecessor(e.target.value)}
+                className="form-control text-xs flex-1"
+                disabled={isPending}
+              >
+                <option value="">-- 先行タスクを追加 --</option>
+                {availablePredecessors.map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+              <button 
+                type="button" 
+                onClick={handleAddDependency}
+                disabled={!selectedPredecessor || isPending}
+                className="btn btn-secondary px-3 py-1 text-xs"
+              >
+                追加
+              </button>
+            </div>
+            {depError && <p className="text-red-400 text-xs mt-1">{depError}</p>}
           </div>
           
           <div className="flex gap-2 justify-end">

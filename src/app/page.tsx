@@ -41,7 +41,12 @@ function formatTimeLeft(dueDate: Date) {
   return isOverdue ? '期限切れ' : '1時間未満'
 }
 
-export default async function Home() {
+export default async function Home(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams
+  const isArchivedView = searchParams.archived === 'true'
+  const page = parseInt(searchParams.page as string || '1', 10)
+  const pageSize = 10
+
   // 1. Supabaseのユーザー情報を取得
   const supabase = await createClient()
   let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null = null
@@ -84,58 +89,77 @@ export default async function Home() {
   const urgentDeadline = new Date()
   urgentDeadline.setDate(urgentDeadline.getDate() + 3)
 
-  // 4. ログインユーザーのプロジェクトだけを取得（期限順）
+  // 4. ログインユーザーのプロジェクトだけを取得（期限順・ページネーション・アーカイブ有無）
   const projects = await prisma.project.findMany({
     where: {
       OR: [
         { userId: user.id },
         { members: { some: { userId: user.id } } },
       ],
-    },
-    include: {
-      tasks: {
-        where: {
-          status: { not: 'DONE' },
-          parentId: { not: null },
-        },
-        orderBy: [
-          { dueDate: 'asc' },
-          { createdAt: 'asc' }
-        ],
-        take: 1
-      }
+      isArchived: isArchivedView
     },
     orderBy: [
       { dueDate: 'asc' },
       { createdAt: 'desc' }
-    ]
+    ],
+    take: pageSize,
+    skip: (page - 1) * pageSize,
   })
 
-  // 全タスク数を取得
-  const projectsWithTaskCount = await Promise.all(
-    projects.map(async (project) => {
-      const parentRemainingCount = await prisma.task.count({
-        where: { projectId: project.id, parentId: null, status: { not: 'DONE' } }
-      })
-      const subRemainingCount = await prisma.task.count({
-        where: { projectId: project.id, parentId: { not: null }, status: { not: 'DONE' } }
-      })
-      const parentCompletedCount = await prisma.task.count({
-        where: { projectId: project.id, parentId: null, status: 'DONE' }
-      })
-      const subCompletedCount = await prisma.task.count({
-        where: { projectId: project.id, parentId: { not: null }, status: 'DONE' }
-      })
-      return { ...project, parentRemainingCount, subRemainingCount, parentCompletedCount, subCompletedCount }
+  const totalProjects = await prisma.project.count({
+    where: {
+      OR: [
+        { userId: user.id },
+        { members: { some: { userId: user.id } } },
+      ],
+      isArchived: isArchivedView
+    }
+  })
+  const totalPages = Math.ceil(totalProjects / pageSize)
+
+  // プロジェクトの全タスクを一括取得（N+1問題の解消）
+  const taskStats = await prisma.task.findMany({
+    where: { projectId: { in: projects.map(p => p.id) } },
+    select: { 
+      projectId: true, parentId: true, status: true, 
+      id: true, title: true, estimatedMinutes: true, actualMinutes: true,
+      dueDate: true, createdAt: true
+    }
+  })
+
+  // メモリ上で集計
+  const projectsWithTaskCount = projects.map((project) => {
+    const pTasks = taskStats.filter(t => t.projectId === project.id)
+    
+    const parentRemainingCount = pTasks.filter(t => t.parentId === null && t.status !== 'DONE').length
+    const subRemainingCount = pTasks.filter(t => t.parentId !== null && t.status !== 'DONE').length
+    const parentCompletedCount = pTasks.filter(t => t.parentId === null && t.status === 'DONE').length
+    const subCompletedCount = pTasks.filter(t => t.parentId !== null && t.status === 'DONE').length
+
+    // 次のタスクを計算
+    const activeSubTasks = pTasks.filter(t => t.status !== 'DONE' && t.parentId !== null)
+    activeSubTasks.sort((a, b) => {
+      if (a.dueDate && b.dueDate) return a.dueDate.getTime() - b.dueDate.getTime()
+      if (a.dueDate) return -1
+      if (b.dueDate) return 1
+      return a.createdAt.getTime() - b.createdAt.getTime()
     })
-  )
+    const nextTask = activeSubTasks[0] || null
+
+    return { 
+      ...project, 
+      tasks: nextTask ? [nextTask] : [],
+      allTasks: pTasks, // ダッシュボード用に保持
+      parentRemainingCount, subRemainingCount, parentCompletedCount, subCompletedCount 
+    }
+  })
 
   // ダッシュボード用のタスクデータ
   const allTasksForDashboard = projectsWithTaskCount.flatMap(p => 
-    p.tasks.map(t => ({
+    p.allTasks.map(t => ({
       id: t.id,
       title: t.title,
-      status: t.status,
+      status: t.status as string,
       estimatedMinutes: t.estimatedMinutes,
       actualMinutes: t.actualMinutes,
     }))
@@ -146,7 +170,7 @@ export default async function Home() {
     title: project.title,
     startDate: project.startDate ?? project.createdAt,
     endDate: project.dueDate,
-    status: project.status,
+    status: project.status as string,
   }))
 
   const ownProjects = projectsWithTaskCount.filter((project) => project.userId === user.id)
@@ -231,6 +255,15 @@ export default async function Home() {
           </div>
           </div>
 
+        <div className="flex justify-between items-center my-4">
+          <Link
+            href={isArchivedView ? '/' : '/?archived=true'}
+            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            {isArchivedView ? '通常プロジェクトを表示' : 'アーカイブ済みを表示'}
+          </Link>
+        </div>
+
         <section className="space-y-4">
           <h2 className="text-lg font-bold text-white">👤 個人プロジェクト ({ownProjects.length})</h2>
           {ownProjects.length === 0 ? (
@@ -260,7 +293,16 @@ export default async function Home() {
                     </div>
                     <div className="pointer-events-none w-full sm:w-auto sm:min-w-[18rem] flex flex-col gap-3">
                       <div className="pointer-events-auto self-start sm:self-end">
-                        <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                        <ProjectActions 
+                          projectId={project.id} 
+                          title={project.title} 
+                          description={project.description || ''} 
+                          startDate={project.startDate} 
+                          dueDate={project.dueDate} 
+                          canDelete={isOwner} 
+                          status={project.status}
+                          isArchived={project.isArchived}
+                        />
                       </div>
                       {nextTask && (
                         <div className="rounded-lg border border-sky-300/30 bg-slate-900/55 p-3">
@@ -316,7 +358,16 @@ export default async function Home() {
                     </div>
                     <div className="pointer-events-none w-full sm:w-auto sm:min-w-[18rem] flex flex-col gap-3">
                       <div className="pointer-events-auto self-start sm:self-end">
-                        <ProjectActions projectId={project.id} title={project.title} description={project.description || ''} startDate={project.startDate} dueDate={project.dueDate} canDelete={isOwner} />
+                        <ProjectActions 
+                          projectId={project.id} 
+                          title={project.title} 
+                          description={project.description || ''} 
+                          startDate={project.startDate} 
+                          dueDate={project.dueDate} 
+                          canDelete={isOwner} 
+                          status={project.status}
+                          isArchived={project.isArchived}
+                        />
                       </div>
                       {nextTask && (
                         <div className="rounded-lg border border-sky-300/30 bg-slate-900/55 p-3">
@@ -342,6 +393,30 @@ export default async function Home() {
             })
           )}
         </section>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-4 mt-8">
+            {page > 1 && (
+              <Link
+                href={`/?page=${page - 1}${isArchivedView ? '&archived=true' : ''}`}
+                className="btn btn-secondary px-6"
+              >
+                前のページ
+              </Link>
+            )}
+            <span className="text-gray-400 py-2">
+              {page} / {totalPages}
+            </span>
+            {page < totalPages && (
+              <Link
+                href={`/?page=${page + 1}${isArchivedView ? '&archived=true' : ''}`}
+                className="btn btn-secondary px-6"
+              >
+                次のページ
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </main>
   )

@@ -14,9 +14,12 @@ type Props = {
   owner: Member
   members: Member[]
   isOwner: boolean
+  memberStats?: Record<string, { activeTaskCount: number; totalEstimatedMinutes: number }>
 }
 
-export default function ProjectMembersPanel({ projectId, owner, members, isOwner }: Props) {
+const LOAD_LIMIT_MINUTES = 2400 // 40 hours
+
+export default function ProjectMembersPanel({ projectId, owner, members, isOwner, memberStats = {} }: Props) {
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Member[]>([])
   const [message, setMessage] = useState<string | null>(null)
@@ -70,14 +73,32 @@ export default function ProjectMembersPanel({ projectId, owner, members, isOwner
 
       <div className="text-sm text-gray-200">
         <span className="font-semibold">オーナー:</span> {owner.email}
+        {memberStats[owner.id] && (
+          <div className="mt-1 text-xs text-gray-400">
+            進行中タスク: {memberStats[owner.id].activeTaskCount}件 
+            / 予定: {memberStats[owner.id].totalEstimatedMinutes}分
+            {memberStats[owner.id].totalEstimatedMinutes > LOAD_LIMIT_MINUTES && (
+              <span className="ml-2 text-red-400 font-bold" title="想定作業時間（40h）を超過しています">⚠️ 負荷高</span>
+            )}
+          </div>
+        )}
       </div>
 
       {members.length > 0 ? (
         <div className="space-y-2">
           {members.map((member) => (
             <div key={member.id} className="flex items-center justify-between rounded px-3 py-2 border border-gray-700 bg-slate-900/50">
-              <div className="text-sm text-gray-100">
+              <div className="text-sm text-gray-100 flex-1">
                 {member.email}
+                {memberStats[member.id] && (
+                  <div className="mt-1 text-xs text-gray-400">
+                    進行中タスク: {memberStats[member.id].activeTaskCount}件 
+                    / 予定: {memberStats[member.id].totalEstimatedMinutes}分
+                    {memberStats[member.id].totalEstimatedMinutes > LOAD_LIMIT_MINUTES && (
+                      <span className="ml-2 text-red-400 font-bold" title="想定作業時間（40h）を超過しています">⚠️ 負荷高</span>
+                    )}
+                  </div>
+                )}
               </div>
               {isOwner && (
                 <button

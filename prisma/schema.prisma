@@ -18,6 +18,8 @@ model User {
   projects  Project[]
   memberships ProjectMember[]
   assignedTasks Task[] @relation("TaskAssignee")
+  taskAssignments TaskAssignment[]
+  taskComments    TaskComment[]
   notificationSubscriptions NotificationSubscription[]
   notificationPreference    NotificationPreference?
   notificationEvents        NotificationEvent[]
@@ -36,6 +38,8 @@ model Project {
   user        User     @relation(fields: [userId], references: [id])
   members     ProjectMember[]
   tasks       Task[]
+  isArchived  Boolean   @default(false)
+  archivedAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -88,9 +92,19 @@ model Task {
   assigneeId String?
   assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
 
+  // --- 5. アーカイブとブロッカー ---
+  isArchived Boolean   @default(false)
+  archivedAt DateTime?
+  blockedAt  DateTime?
+
   // --- リレーション ---
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  predecessors TaskDependency[] @relation("DependsOn")
+  dependents   TaskDependency[] @relation("PredecessorOf")
+  assignments  TaskAssignment[]
+  blockers     TaskBlocker[]
+  comments     TaskComment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -102,6 +116,7 @@ model Task {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  BLOCKED
   DONE
 }
 
@@ -158,6 +173,8 @@ model NotificationPreference {
   dueSoonEnabled   Boolean  @default(true)
   overdueEnabled   Boolean  @default(true)
   assignmentEnabled Boolean @default(true)
+  slackWebhookUrl  String?
+  slackEnabled     Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -203,4 +220,70 @@ model NotificationDelivery {
 
   @@index([eventId, status])
   @@index([subscriptionId, status])
+}
+
+// === 追加: タスク間の依存関係 ===
+model TaskDependency {
+  id             String   @id @default(uuid())
+  // このタスクが完了するまで、dependentTask は開始できない
+  predecessorId  String
+  predecessor    Task     @relation("PredecessorOf", fields: [predecessorId], references: [id])
+  dependentId    String
+  dependent      Task     @relation("DependsOn", fields: [dependentId], references: [id])
+  type           DependencyType @default(FINISH_TO_START)
+  createdAt      DateTime @default(now())
+
+  @@unique([predecessorId, dependentId])
+}
+
+enum DependencyType {
+  FINISH_TO_START   // 前工程完了後に開始（標準）
+  START_TO_START    // 同時開始
+  FINISH_TO_FINISH  // 同時完了
+}
+
+// === 追加: タスクの担当・RACI ===
+model TaskAssignment {
+  id       String   @id @default(uuid())
+  taskId   String
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     AssignRole // RESPONSIBLE / ACCOUNTABLE / CONSULTED / INFORMED
+}
+
+enum AssignRole {
+  RESPONSIBLE
+  ACCOUNTABLE
+  CONSULTED
+  INFORMED
+}
+
+// === 追加: ブロッカー/リスク ===
+model TaskBlocker {
+  id          String    @id @default(uuid())
+  taskId      String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reason      String
+  severity    BlockerSeverity @default(MEDIUM)
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+enum BlockerSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// === 追加: コメント ===
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
 }

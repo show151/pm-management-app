@@ -10,6 +10,8 @@ type PreferenceBody = {
   dueSoonEnabled?: boolean
   overdueEnabled?: boolean
   assignmentEnabled?: boolean
+  slackWebhookUrl?: string | null
+  slackEnabled?: boolean
 }
 
 async function getAuthUser() {
@@ -57,6 +59,8 @@ export async function PUT(req: Request) {
     dueSoonEnabled: body.dueSoonEnabled,
     overdueEnabled: body.overdueEnabled,
     assignmentEnabled: body.assignmentEnabled,
+    slackWebhookUrl: body.slackWebhookUrl,
+    slackEnabled: body.slackEnabled,
   })
 
   return NextResponse.json(next)

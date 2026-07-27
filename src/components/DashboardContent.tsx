@@ -33,12 +33,24 @@ type DashboardContentProps = {
     projectId: string
     projectTitle: string
   }>
+  activeBlockers?: Array<{
+    id: string
+    reason: string
+    severity: string
+    createdAt: Date
+    task: {
+      id: string
+      title: string
+      project: { id: string; title: string }
+    }
+  }>
 }
 
 export default function DashboardContent({
   dashboardTasks,
   parentTasks,
   childTasks,
+  activeBlockers = [],
 }: DashboardContentProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<'all' | string>('all')
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -187,6 +199,36 @@ export default function DashboardContent({
             </select>
           </div>
         </div>
+
+        {/* ブロッカー警告セクション */}
+        {activeBlockers.length > 0 && (
+          <div className="ui-panel rounded-lg p-4 border border-red-500/50 bg-red-900/20 mt-4">
+            <h2 className="text-lg font-bold text-red-400 mb-3 flex items-center gap-2">
+              ⚠️ ブロックされているタスク ({activeBlockers.length})
+            </h2>
+            <div className="space-y-2">
+              {activeBlockers.map((blocker) => (
+                <div key={blocker.id} className="bg-red-950/40 border border-red-800 p-3 rounded flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="bg-red-700 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
+                        {blocker.severity}
+                      </span>
+                      <Link href={`/project/${blocker.task.project.id}`} className="text-sm font-bold text-red-200 hover:underline">
+                        {blocker.task.title}
+                      </Link>
+                      <span className="text-xs text-red-400">({blocker.task.project.title})</span>
+                    </div>
+                    <p className="text-sm text-red-300">{blocker.reason}</p>
+                  </div>
+                  <div className="text-xs text-red-500 shrink-0">
+                    報告: {new Date(blocker.createdAt).toLocaleDateString('ja-JP')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ダッシュボード表示*/}
         <Dashboard tasks={filteredDashboardTasks} />

@@ -13,10 +13,19 @@ import ProjectDate from '@/components/ProjectDate'
 import ProjectStatusButton from '@/components/ProjectStatusButton'
 import ProjectMembersPanel from '@/components/ProjectMembersPanel'
 import TaskTimelineChart from '@/components/TaskTimelineChart'
+import ProjectGanttChart, { GanttTask } from '@/components/ProjectGanttChart'
+import TaskBlockerUI from '@/components/TaskBlockerUI'
+import TaskComments from '@/components/TaskComments'
+import PriorityMatrix from '@/components/PriorityMatrix'
 import CloseDetailsButton from '@/components/CloseDetailsButton'
 
-export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function ProjectPage(props: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ tab?: string }>
+}) {
+  const { id } = await props.params
+  const searchParams = await props.searchParams
+  const tab = searchParams.tab || 'list'
   const supabase = await createClient()
   let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null = null
 
@@ -73,6 +82,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               name: true,
             },
           },
+          predecessors: true,
+          dependents: true,
+          blockers: true,
+          _count: { select: { comments: true } },
           children: {
             orderBy: [
               { dueDate: 'asc' },
@@ -86,6 +99,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   name: true,
                 },
               },
+              predecessors: true,
+              dependents: true,
+              blockers: true,
+              _count: { select: { comments: true } },
             },
           }
         }
@@ -110,6 +127,36 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       return acc
     }, [])
 
+  // 依存関係設定などのためにプロジェクト内の全タスクを平坦なリストにする
+  const allTasks = project.tasks.reduce<Array<{ id: string; title: string; status: string }>>((acc, task) => {
+    acc.push({ id: task.id, title: task.title, status: task.status })
+    task.children.forEach(child => {
+      acc.push({ id: child.id, title: child.title, status: child.status })
+    })
+    return acc
+  }, [])
+
+  // メンバー別のリソース負荷状況をDB側で集計
+  const taskGroupStats = await prisma.task.groupBy({
+    by: ['assigneeId'],
+    where: { 
+      projectId: id, 
+      status: { in: ['TODO', 'IN_PROGRESS'] },
+      assigneeId: { not: null }
+    },
+    _count: { id: true },
+    _sum: { estimatedMinutes: true }
+  })
+
+  const memberStats: Record<string, { activeTaskCount: number; totalEstimatedMinutes: number }> = {}
+  assigneeOptions.forEach(opt => {
+    const stat = taskGroupStats.find(s => s.assigneeId === opt.id)
+    memberStats[opt.id] = { 
+      activeTaskCount: stat?._count.id || 0, 
+      totalEstimatedMinutes: stat?._sum.estimatedMinutes || 0 
+    }
+  })
+
   const taskTimelineItems = project.tasks.map((task) => ({
     id: task.id,
     title: task.title,
@@ -124,6 +171,32 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       status: subTask.status,
     })),
   }))
+
+  const ganttTasks: GanttTask[] = project.tasks.flatMap(task => {
+    const parent: GanttTask = {
+      id: task.id,
+      title: task.title,
+      startDate: (task.startDate ?? task.createdAt).toISOString(),
+      endDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+      status: task.status,
+      isChild: false,
+      parentId: null,
+      predecessors: task.predecessors,
+      dependents: task.dependents
+    }
+    const children: GanttTask[] = task.children.map(child => ({
+      id: child.id,
+      title: child.title,
+      startDate: (child.startDate ?? child.createdAt).toISOString(),
+      endDate: child.dueDate ? new Date(child.dueDate).toISOString() : null,
+      status: child.status,
+      isChild: true,
+      parentId: task.id,
+      predecessors: child.predecessors,
+      dependents: child.dependents
+    }))
+    return [parent, ...children]
+  })
 
   return (
     <main className="app-shell">
@@ -148,16 +221,57 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           owner={project.user}
           members={project.members.map((member) => member.user)}
           isOwner={isOwner}
+          memberStats={memberStats}
         />
 
-        <TaskTimelineChart items={taskTimelineItems} />
-
-        <div className="mb-6">
-          <NewTaskForm projectId={project.id} assigneeOptions={assigneeOptions} />
+        <div className="flex gap-2 mb-4 border-b border-gray-700 pb-2 mt-4">
+          <Link 
+            href={`/project/${project.id}?tab=list`} 
+            className={`px-4 py-2 text-sm font-bold ${tab === 'list' ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-300'}`}
+          >
+            リスト＆タイムライン
+          </Link>
+          <Link 
+            href={`/project/${project.id}?tab=gantt`} 
+            className={`px-4 py-2 text-sm font-bold ${tab === 'gantt' ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-300'}`}
+          >
+            ガントチャート
+          </Link>
+          <Link 
+            href={`/project/${project.id}?tab=matrix`} 
+            className={`px-4 py-2 text-sm font-bold ${tab === 'matrix' ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-300'}`}
+          >
+            優先度マトリクス
+          </Link>
         </div>
 
-        <div className="space-y-4">
-          {project.tasks.length > 0 ? (
+        {tab === 'matrix' ? (
+          <div className="mb-6">
+            <PriorityMatrix tasks={allTasks.map(t => {
+              const full = project.tasks.find(pt => pt.id === t.id) || project.tasks.flatMap(pt => pt.children).find(c => c.id === t.id)
+              return {
+                id: t.id,
+                title: t.title,
+                status: t.status,
+                importance: full?.importance ?? 3,
+                urgency: full?.urgency ?? 3,
+              }
+            })} />
+          </div>
+        ) : tab === 'gantt' ? (
+          <div className="mb-6">
+            <ProjectGanttChart tasks={ganttTasks} />
+          </div>
+        ) : (
+          <>
+            <TaskTimelineChart items={taskTimelineItems} />
+
+            <div className="my-6">
+              <NewTaskForm projectId={project.id} assigneeOptions={assigneeOptions} />
+            </div>
+
+            <div className="space-y-4">
+              {project.tasks.length > 0 ? (
             project.tasks.map((task) => (
               <div key={task.id} className="border border-blue-700 rounded-lg overflow-hidden">
                 <div className={`p-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 transition-colors ${task.status === 'DONE' ? 'bg-slate-800/80 opacity-70' : 'bg-slate-900/70'}`}>
@@ -177,16 +291,22 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                         assigneeId={task.assigneeId}
                         assigneeOptions={assigneeOptions}
                         isSubTask={false}
+                        predecessors={task.predecessors}
+                        allTasks={allTasks}
                       />
                     </div>
                     <TaskDate startDate={task.startDate} date={task.dueDate} isDone={task.status === 'DONE'} />
-                    <div className="text-xs text-gray-300 mt-1 flex flex-wrap gap-2">
+                    <div className="mt-2">
+                      <TaskBlockerUI taskId={task.id} blockers={task.blockers} />
+                    </div>
+                    <div className="text-xs text-gray-300 mt-2 flex flex-wrap gap-2">
                       <span className="bg-blue-400 text-white px-2 py-0.5 rounded">重要: {task.importance}</span>
                       <span className="bg-pink-400 text-white px-2 py-0.5 rounded">緊急: {task.urgency}</span>
                       <span className="bg-gray-700 text-gray-200 px-2 py-0.5 rounded">予定: {task.estimatedMinutes}分</span>
                       <span className="bg-indigo-500/70 text-white px-2 py-0.5 rounded">
                         担当: {task.assignee?.name || task.assignee?.email || '未割当'}
                       </span>
+                      <TaskComments taskId={task.id} taskTitle={task.title} commentCount={task._count.comments} />
                     </div>
                   </div>
                   <TaskStatusButton 
@@ -200,6 +320,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     actualStartAt={task.actualStartAt}
                     actualEndAt={task.actualEndAt}
                     isSubTask={false}
+                    predecessors={task.predecessors}
+                    allTasks={allTasks}
                   />
                 </div>
 
@@ -216,6 +338,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                               <span className="text-gray-500 leading-6 shrink-0">└</span>
                               <div className="shrink-0">
                                 <TaskDate date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
+                                <div className="mt-1">
+                                  <TaskBlockerUI taskId={subTask.id} blockers={subTask.blockers} />
+                                </div>
                               </div>
                               <span
                                 className={`min-w-0 break-words leading-6 ${
@@ -242,10 +367,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                                 assigneeId={subTask.assigneeId}
                                 assigneeOptions={assigneeOptions}
                                 isSubTask={true}
+                                predecessors={subTask.predecessors}
+                                allTasks={allTasks}
                               />
                               <span className="text-[10px] text-indigo-200 bg-indigo-900/40 px-1.5 py-0.5 rounded">
                                 担当: {subTask.assignee?.name || subTask.assignee?.email || '未割当'}
                               </span>
+                              <TaskComments taskId={subTask.id} taskTitle={subTask.title} commentCount={subTask._count.comments} />
                             </div>
                           </div>
                           <div className="w-full md:w-auto md:shrink-0">
@@ -260,6 +388,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                               actualStartAt={subTask.actualStartAt}
                               actualEndAt={subTask.actualEndAt}
                               isSubTask={true}
+                              predecessors={subTask.predecessors}
+                              allTasks={allTasks}
                             />
                           </div>
                         </div>
@@ -316,6 +446,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             <p className="text-center text-gray-500 py-4">タスクはありません</p>
           )}
         </div>
+        </>
+        )}
       </div>
     </main>
   )

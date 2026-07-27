@@ -1,11 +1,12 @@
 // src/components/ProjectActions.tsx
 'use client'
 
+import { archiveProject, unarchiveProject } from '@/app/actions/project-actions'
 import { deleteProject, updateProject } from '@/app/actions/modify-actions'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 
-export default function ProjectActions({ projectId, title, description, startDate, dueDate, canDelete = true }: { projectId: string, title: string, description: string, startDate: Date | null, dueDate: Date | null, canDelete?: boolean }) {
+export default function ProjectActions({ projectId, title, description, startDate, dueDate, canDelete = true, status, isArchived }: { projectId: string, title: string, description: string, startDate: Date | null, dueDate: Date | null, canDelete?: boolean, status: string, isArchived: boolean }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(title)
   const [editDescription, setEditDescription] = useState(description)
@@ -106,6 +107,33 @@ export default function ProjectActions({ projectId, title, description, startDat
       >
         ✏️
       </button>
+      <a
+        href={`/api/projects/${projectId}/export`}
+        download={`project_${projectId}_tasks.csv`}
+        onClick={(e) => e.stopPropagation()}
+        className="btn btn-secondary btn-icon"
+        title="CSVエクスポート"
+      >
+        📥
+      </a>
+      {status === 'COMPLETED' && canDelete && (
+        <button
+          onClick={async (e) => {
+            e.stopPropagation()
+            if (isArchived) {
+              await unarchiveProject(projectId)
+            } else {
+              if (confirm('このプロジェクトをアーカイブしますか？一覧から非表示になります。')) {
+                await archiveProject(projectId)
+              }
+            }
+          }}
+          className={`btn ${isArchived ? 'btn-secondary' : 'btn-primary bg-indigo-600/50 border-indigo-500/50 hover:bg-indigo-600/70'} btn-icon`}
+          title={isArchived ? 'アーカイブ解除' : 'アーカイブ'}
+        >
+          {isArchived ? '📦⬆️' : '📦⬇️'}
+        </button>
+      )}
       <button
         onClick={handleDelete}
         disabled={!canDelete}

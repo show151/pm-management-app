@@ -14,6 +14,8 @@ type NotificationPreference = {
   dueSoonEnabled: boolean
   overdueEnabled: boolean
   assignmentEnabled: boolean
+  slackWebhookUrl: string | null
+  slackEnabled: boolean
 }
 
 const DEFAULT_PREFERENCE: NotificationPreference = {
@@ -24,6 +26,8 @@ const DEFAULT_PREFERENCE: NotificationPreference = {
   dueSoonEnabled: true,
   overdueEnabled: true,
   assignmentEnabled: true,
+  slackWebhookUrl: null,
+  slackEnabled: false,
 }
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i)
@@ -118,6 +122,8 @@ export default function PushNotificationPanel() {
             dueSoonEnabled: Boolean(data.dueSoonEnabled ?? DEFAULT_PREFERENCE.dueSoonEnabled),
             overdueEnabled: Boolean(data.overdueEnabled ?? DEFAULT_PREFERENCE.overdueEnabled),
             assignmentEnabled: Boolean(data.assignmentEnabled ?? DEFAULT_PREFERENCE.assignmentEnabled),
+            slackWebhookUrl: typeof data.slackWebhookUrl === 'string' ? data.slackWebhookUrl : DEFAULT_PREFERENCE.slackWebhookUrl,
+            slackEnabled: Boolean(data.slackEnabled ?? DEFAULT_PREFERENCE.slackEnabled),
           })
         }
       } catch {
@@ -253,6 +259,8 @@ export default function PushNotificationPanel() {
           dueSoonEnabled: preference.dueSoonEnabled,
           overdueEnabled: preference.overdueEnabled,
           assignmentEnabled: preference.assignmentEnabled,
+          slackWebhookUrl: preference.slackWebhookUrl,
+          slackEnabled: preference.slackEnabled,
         }),
       })
 
@@ -277,9 +285,10 @@ export default function PushNotificationPanel() {
   }
 
   return (
-    <section className="ui-panel rounded-xl p-3 sm:p-4 space-y-3">
+    <section className="ui-panel rounded-xl p-6 space-y-3">
+      <h2 className="text-xl font-bold text-white mb-4">通知設定 (Web Push / Slack)</h2>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-white">通知設定（Web Push）</h3>
+        <h3 className="text-sm font-semibold text-white">Web Push</h3>
         <span className="text-xs text-gray-300">権限: {permission}</span>
       </div>
 
@@ -321,7 +330,6 @@ export default function PushNotificationPanel() {
       </p>
 
       <div className="space-y-2 rounded-lg border border-white/10 bg-black/15 p-3">
-        <p className="text-xs font-semibold text-gray-200">通知詳細設定</p>
         <label className="flex items-center gap-2 text-xs text-gray-100">
           <input
             type="checkbox"

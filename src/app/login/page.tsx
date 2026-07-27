@@ -49,6 +49,14 @@ async function signIn(formData: FormData) {
   })
 
   if (error) {
+    console.error('========== LOGIN ERROR ==========')
+    console.error('email:', email)
+    console.error('message:', error.message)
+    console.error('status:', error.status)
+    console.error('name:', error.name)
+    console.error('=================================')
+
+
     return redirect(`/login?message=${encodeURIComponent('ログインに失敗しました')}`)
   }
 

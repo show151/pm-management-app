@@ -16,6 +16,8 @@ type Props = {
   actualStartAt?: Date | null
   actualEndAt?: Date | null
   isSubTask?: boolean
+  predecessors?: Array<{ id: string; predecessorId: string; dependentId: string }>
+  allTasks?: Array<{ id: string; title: string; status: string }>
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -99,6 +101,8 @@ export default function TaskStatusButton({
   actualStartAt,
   actualEndAt,
   isSubTask = false,
+  predecessors = [],
+  allTasks = [],
 }: Props) {
   const [isPending, startTransition] = useTransition()
   const [isInputting, setIsInputting] = useState(false)
@@ -123,6 +127,7 @@ export default function TaskStatusButton({
   const isDone = status === 'DONE'
   const isInProgress = status === 'IN_PROGRESS'
   const isTodo = status === 'TODO'
+  const isBlocked = status === 'BLOCKED'
   const isRunning = runningSinceMs !== null
   const startDeltaText = !isSubTask ? buildDeltaText('開始', actualStartAt, startDate) : null
   const endDeltaText = !isSubTask ? buildDeltaText('完了', actualEndAt, dueDate) : null
@@ -134,6 +139,13 @@ export default function TaskStatusButton({
   const elapsedMinutesForComplete = elapsedMs > 0 ? Math.ceil(elapsedMs / 60000) : 0
   const elapsedMinutesView = Math.floor(elapsedMs / 60000)
   const elapsedSecondsView = Math.floor((elapsedMs % 60000) / 1000)
+
+  const incompletePredecessors = useMemo(() => {
+    return predecessors.filter(dep => {
+      const pTask = allTasks.find(t => t.id === dep.predecessorId)
+      return pTask && pTask.status !== 'DONE'
+    })
+  }, [predecessors, allTasks])
 
   useEffect(() => {
     if (!isSubTask || isDone) return
@@ -165,12 +177,22 @@ export default function TaskStatusButton({
   }
 
   const handleStart = () => {
+    if (incompletePredecessors.length > 0) {
+      if (!confirm('先行タスクが完了していませんが、本当に開始しますか？')) {
+        return
+      }
+    }
     startTransition(async () => {
       await startTask(taskId)
     })
   }
 
   const handleTimerStart = () => {
+    if (isTodo && incompletePredecessors.length > 0) {
+      if (!confirm('先行タスクが完了していませんが、本当に開始しますか？')) {
+        return
+      }
+    }
     startTransition(async () => {
       if (isTodo) {
         await startTask(taskId)
@@ -214,6 +236,10 @@ export default function TaskStatusButton({
   }
 
   const handleStatusClick = () => {
+    if (isBlocked) {
+      alert('ブロック中はステータスを変更できません。先にブロッカーを解除してください。')
+      return
+    }
     if (isTodo) {
       handleStart()
       return
@@ -417,14 +443,16 @@ export default function TaskStatusButton({
       <div className="flex flex-col items-end gap-1">
         <button
           onClick={handleStatusClick}
-          disabled={isPending}
+          disabled={isPending || isBlocked}
           className={`btn text-xs ${
-            isTodo
+            isBlocked
+              ? 'border-red-500/80 bg-red-600/50 text-white cursor-not-allowed'
+              : isTodo
               ? 'border-gray-400/70 bg-gray-500/20 text-gray-100 hover:bg-gray-500/30'
               : 'border-amber-300/80 bg-amber-500/25 text-amber-100 hover:bg-amber-500/35'
           }`}
         >
-          {isPending ? '...' : isTodo ? '未完了' : '進行中'}
+          {isPending ? '...' : isBlocked ? 'ブロック中' : isTodo ? '未完了' : '進行中'}
         </button>
         {isInProgress && startDeltaText && <p className="text-[11px] text-gray-300">{startDeltaText}</p>}
       </div>

@@ -11,7 +11,7 @@ export async function createClient() {
     {
       auth: {
         autoRefreshToken: false,
-        persistSession: false,
+        persistSession: true,
       },
       cookies: {
         get(name: string) {

@@ -20,6 +20,7 @@ export const auth = betterAuth({
   plugins: [
     nextCookies(),
   ],
+  // 動的ベースURL設定（Vercelとlocalhost両方で動作）
   baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: [

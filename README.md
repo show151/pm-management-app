@@ -359,16 +359,13 @@ npm run dev
   "crons": [
     {
       "path": "/api/notifications/dispatch?limit=100",
-      "schedule": "0 16 * * *",
-      "headers": {
-        "x-notification-secret": "${NOTIFICATION_CRON_SECRET}"
-      }
+      "schedule": "0 16 * * *"
     }
   ]
 }
 ```
 
-> **注**：Vercel の環境変数に `NOTIFICATION_CRON_SECRET` を設定する必要があります。Vercel ダッシュボード → Settings → Environment Variables から追加してください。Cron のスケジュールは UTC で指定します（`0 16 * * *` = 毎日午前16:00 UTC = 日本午前1時）。
+> **注**：Vercel Cron はカスタムヘッダーをサポートしないため、`NOTIFICATION_CRON_SECRET` は Vercel Cron 用には不要です。Vercel Cron からのリクエストは信頼されたインフラからのものとして自動的に許可されます。外部 Cron（GitHub Actions など）から呼び出す場合は、`x-notification-secret` ヘッダーまたは `secret` クエリパラメータで秘密鍵を指定してください。Cron のスケジュールは UTC で指定します（`0 16 * * *` = 毎日午前16:00 UTC = 日本午前1時）。
 
 #### 外部 Cron（GitHub Actions など）
 

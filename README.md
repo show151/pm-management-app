@@ -346,14 +346,58 @@ npx prisma generate
 npm run dev
 ```
 
-### 通知ディスパッチの設定
+### 通知ディスパッチの設定（Cron）
 
-通知ディスパッチは Cron などから以下を定期実行してください。
+通知ディスパッチは Vercel Cron または外部 Cron から定期実行します。
+
+#### Vercel Cron（推奨）
+
+`vercel.json` に Cron 設定が含まれています。Vercel にデプロイすると、毎日午前1時（Asia/Tokyo）に自動で通知ディスパッチが実行されます。
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/notifications/dispatch?limit=100",
+      "schedule": "0 1 * * *",
+      "timezone": "Asia/Tokyo",
+      "headers": {
+        "x-notification-secret": "${NOTIFICATION_CRON_SECRET}"
+      }
+    }
+  ]
+}
+```
+
+> **注**：Vercel の環境変数に `NOTIFICATION_CRON_SECRET` を設定する必要があります。Vercel ダッシュボード → Settings → Environment Variables から追加してください。
+
+#### 外部 Cron（GitHub Actions など）
+
+外部サーバーから実行する場合は以下のコマンドを使用します。
 
 ```bash
-curl -X POST "http://localhost:3000/api/notifications/dispatch" \
+curl -X POST "https://your-app.vercel.app/api/notifications/dispatch" \
   -H "x-notification-secret: ${NOTIFICATION_CRON_SECRET}"
 ```
+
+GitHub Actions の例：
+
+```yaml
+name: Notification Dispatch
+on:
+  schedule:
+    - cron: '0 1 * * *'  # 毎日午前1時 UTC
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch notifications
+        run: |
+          curl -X POST "https://your-app.vercel.app/api/notifications/dispatch" \
+            -H "x-notification-secret: ${{ secrets.NOTIFICATION_CRON_SECRET }}"
+```
+
+#### 通知イベントの自動登録
 
 通知イベント（タスク期限系）は以下を自動登録します。
 
@@ -361,6 +405,33 @@ curl -X POST "http://localhost:3000/api/notifications/dispatch" \
 - 期限の1日前
 - 期限の30分前
 - 期限超過直後
+
+### Slack 連携の設定
+
+Slack に通知を送信するには以下の手順に従います。
+
+1. **Slack アプリの作成**
+   - [Slack API](https://api.slack.com/apps) にアクセス
+   - 「Create New App」→「From scratch」を選択
+   - アプリ名とワークスペースを選択して作成
+
+2. **Incoming Webhook の設定**
+   - サイドバーから「Incoming Webhooks」を選択
+   -「Activate Incoming Webhooks」を「On」に切り替え
+   -「Add New Webhook to Workspace」をクリック
+   - 通知を送信したいチャンネルを選択して許可
+   - 生成された Webhook URL をコピー
+
+3. **アプリでの設定**
+   - アプリにログイン後、ホーム画面の「通知設定」パネルを開く
+   -「Slack Webhook URL」にコピーした URL を貼り付け
+   -「Slack 通知を有効化」チェックボックスをオン
+   -「通知設定を保存」をクリック
+
+4. **動作確認**
+   -「テスト通知を登録」ボタンをクリック
+   - Slack チャンネルにテスト通知が届くことを確認
+   - 期限が近づいたタスクやアサインされたタスクの通知も Slack に届きます
 
 ### 本番ビルド
 

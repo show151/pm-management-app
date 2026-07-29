@@ -2,7 +2,11 @@
   "crons": [
     {
       "path": "/api/notifications/dispatch?limit=100",
-      "schedule": "0 1 * * *"
+      "schedule": "0 1 * * *",
+      "timezone": "Asia/Tokyo",
+      "headers": {
+        "x-notification-secret": "${NOTIFICATION_CRON_SECRET}"
+      }
     }
   ]
 }

@@ -11,7 +11,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
-    requireEmailVerification: false, // 開発環境向け：メール確認をスキップ
+    requireEmailVerification: false,
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7日間
@@ -26,5 +26,3 @@ export const auth = betterAuth({
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ],
 });
-
-export type Session = typeof auth.$Infer.Session;

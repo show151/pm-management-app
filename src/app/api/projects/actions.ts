@@ -2,13 +2,10 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/utils/supabase/server'
+import { getAuthUserOrThrow } from '@/lib/auth-session'
 
 export async function createProject(formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) return
+  const user = await getAuthUserOrThrow()
   
   const title = formData.get('title') as string
   const description = formData.get('description') as string

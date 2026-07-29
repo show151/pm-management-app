@@ -1,7 +1,7 @@
 // src/app/project/[id]/page.tsx
 
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+import { getAuthUser } from '@/lib/auth-session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import NewTaskForm from '@/components/NewTaskForm'
@@ -26,15 +26,7 @@ export default async function ProjectPage(props: {
   const { id } = await props.params
   const searchParams = await props.searchParams
   const tab = searchParams.tab || 'list'
-  const supabase = await createClient()
-  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null = null
-
-  try {
-    const { data, error } = await supabase.auth.getUser()
-    user = error ? null : data.user
-  } catch {
-    user = null
-  }
+  const user = await getAuthUser()
 
   if (!user) {
     redirect('/login')

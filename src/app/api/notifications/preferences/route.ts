@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { getAuthUser } from '@/lib/auth-session'
 import { getOrCreateNotificationPreference, updateNotificationPreference } from '@/lib/notifications'
 
 type PreferenceBody = {
@@ -12,13 +12,6 @@ type PreferenceBody = {
   assignmentEnabled?: boolean
   slackWebhookUrl?: string | null
   slackEnabled?: boolean
-}
-
-async function getAuthUser() {
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) return null
-  return data.user
 }
 
 export async function GET() {

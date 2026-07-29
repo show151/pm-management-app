@@ -3,8 +3,9 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 import {
   assertProjectAccess,
   assertProjectOwner,
@@ -426,8 +427,9 @@ export async function removeProjectMember(projectId: string, memberUserId: strin
 // ========== 認証関連 ==========
 
 export async function signOut() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+  await auth.api.signOut({
+    headers: await headers(),
+  })
   redirect('/login')
 }
 
@@ -439,6 +441,15 @@ export async function updateUserName(name: string) {
     return { ok: false, message: 'ユーザーネームを入力してください。' }
   }
 
+  // Better Authのユーザー情報を更新
+  await auth.api.updateUser({
+    headers: await headers(),
+    body: {
+      name: normalized,
+    },
+  })
+
+  // Prisma側のUserテーブルも更新（Better Authと同期）
   await prisma.user.upsert({
     where: { id: authUser.id },
     update: { name: normalized },
@@ -447,11 +458,6 @@ export async function updateUserName(name: string) {
       email: authUser.email ?? '',
       name: normalized,
     },
-  })
-
-  const supabase = await createClient()
-  await supabase.auth.updateUser({
-    data: { name: normalized },
   })
 
   revalidatePath('/')

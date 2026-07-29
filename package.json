@@ -10,8 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
-    "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.94.0",
+    "better-auth": "^1.6.25",
     "next": "16.1.6",
     "npm": "^11.10.0",
     "react": "19.2.3",
@@ -30,7 +29,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "prisma": "^5.22.0",
-    "supabase": "^2.109.1",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "typescript": "^5"

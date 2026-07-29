@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { getAuthUser } from '@/lib/auth-session'
 import { deactivateNotificationSubscription, upsertNotificationSubscription } from '@/lib/notifications'
 import { prisma } from '@/lib/prisma'
 
@@ -12,13 +12,6 @@ type SubscriptionBody = {
   platform?: string
   userAgent?: string
   locale?: string
-}
-
-async function getAuthUser() {
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) return null
-  return data.user
 }
 
 export async function POST(req: Request) {

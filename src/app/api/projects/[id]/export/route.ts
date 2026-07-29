@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+import { getAuthUser } from '@/lib/auth-session'
 import { assertProjectAccess } from '@/lib/project-access'
 
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params
   const projectId = params.id
   
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const user = await getAuthUser()
 
-  if (error || !user) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -5,43 +5,94 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
-// ユーザー（Supabase Authと連携するための箱）
+// ==========================================
+// ユーザー & プロジェクト管理
+// ==========================================
+
+// ユーザー（Better Authと連携）
 model User {
-  id        String    @id // SupabaseのAuth IDが入ります
-  email     String    @unique
-  name      String?
-  projects  Project[]
-  memberships ProjectMember[]
-  assignedTasks Task[] @relation("TaskAssignee")
-  taskAssignments TaskAssignment[]
-  taskComments    TaskComment[]
+  id                        String                     @id @unique @default(uuid())
+  email                     String                     @unique
+  emailVerified             Boolean                    @default(false)
+  name                      String?
+  image                     String?
+  projects                  Project[]
+  memberships               ProjectMember[]
+  assignedTasks             Task[]                     @relation("TaskAssignee")
+  taskAssignments           TaskAssignment[]
+  taskComments              TaskComment[]
   notificationSubscriptions NotificationSubscription[]
-  notificationPreference    NotificationPreference?
+  notificationPreference   NotificationPreference?
   notificationEvents        NotificationEvent[]
-  createdAt DateTime  @default(now())
+  sessions                  Session[]
+  accounts                  Account[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
 }
 
-// プロジェクト（大きな目標の単位）
+// Better Auth - セッション管理
+model Session {
+  id        String   @id @unique
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Better Auth - アカウント（認証プロバイダー情報）
+model Account {
+  id                    String    @id @unique
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Better Auth - 認証確認
+model Verification {
+  id         String   @id @unique
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// プロジェクト
 model Project {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   title       String
   description String?
   startDate   DateTime?
   dueDate     DateTime?
   status      ProjectStatus @default(ACTIVE)
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
   members     ProjectMember[]
   tasks       Task[]
-  isArchived  Boolean   @default(false)
+  isArchived  Boolean       @default(false)
   archivedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
 }
 
 model ProjectMember {
@@ -61,18 +112,22 @@ enum ProjectStatus {
   COMPLETED
 }
 
+// ==========================================
+// タスク & WBS & メタ認知
+// ==========================================
+
 // タスク（PM力とメタ認知を鍛えるための核心）
 model Task {
   id     String     @id @default(uuid())
   title  String
   status TaskStatus @default(TODO)
 
-  startDate        DateTime?
-  dueDate          DateTime?
-  actualStartAt    DateTime?
-  actualEndAt      DateTime?
+  startDate     DateTime?
+  dueDate       DateTime?
+  actualStartAt DateTime?
+  actualEndAt   DateTime?
 
-  // --- 1. アイゼンハワー行列用（優先順位） ---
+  // --- 1. アイゼンハワー行列（優先順位） ---
   importance Int @default(3) // 重要度 (1:低い - 5:高い)
   urgency    Int @default(3) // 緊急度 (1:低い - 5:高い)
 
@@ -83,12 +138,12 @@ model Task {
   // --- 3. メタ認知データ（内省） ---
   confidenceScore Int?    // 着手前の自信度 (1:不安 - 5:絶対できる)
   satisfaction    Int?    // 完了後の満足度/自己評価 (1-5)
-  reflection      String? // 振り返りメモ（なぜ遅れたか？など）
+  reflection      String? // 振り返りメモ
 
-  // --- 4. WBS用（親子関係） ---
-  parentId String?
-  parent   Task?   @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
-  children Task[]  @relation("SubTasks")
+  // --- 4. WBS用（階層・担当者） ---
+  parentId   String?
+  parent     Task?   @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  children   Task[]  @relation("SubTasks")
   assigneeId String?
   assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
 
@@ -98,8 +153,8 @@ model Task {
   blockedAt  DateTime?
 
   // --- リレーション ---
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId    String
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   predecessors TaskDependency[] @relation("DependsOn")
   dependents   TaskDependency[] @relation("PredecessorOf")
   assignments  TaskAssignment[]
@@ -109,16 +164,93 @@ model Task {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([projectId, isArchived, status])
+  @@index([parentId])
   @@index([assigneeId])
 }
 
-// タスクの状態
 enum TaskStatus {
   TODO
   IN_PROGRESS
   BLOCKED
   DONE
 }
+
+// タスク間の依存関係（ガントチャート対応）
+model TaskDependency {
+  id            String         @id @default(uuid())
+  predecessorId String
+  predecessor   Task           @relation("PredecessorOf", fields: [predecessorId], references: [id], onDelete: Cascade)
+  dependentId   String
+  dependent     Task           @relation("DependsOn", fields: [dependentId], references: [id], onDelete: Cascade)
+  type          DependencyType @default(FINISH_TO_START)
+  createdAt     DateTime       @default(now())
+
+  @@unique([predecessorId, dependentId])
+}
+
+enum DependencyType {
+  FINISH_TO_START // 前工程完了後に開始（標準）
+  START_TO_START  // 同時開始
+  FINISH_TO_FINISH // 同時完了
+}
+
+// タスクの担当・RACIマトリクス
+model TaskAssignment {
+  id     String     @id @default(uuid())
+  taskId String
+  task   Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId String
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   AssignRole
+
+  @@unique([taskId, userId])
+  @@index([userId])
+}
+
+enum AssignRole {
+  RESPONSIBLE // 実行責任者
+  ACCOUNTABLE // 最終説明責任者
+  CONSULTED   // 相談対応者
+  INFORMED    // 報告先
+}
+
+// ブロッカー / リスク
+model TaskBlocker {
+  id         String          @id @default(uuid())
+  taskId     String
+  task       Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reason     String
+  severity   BlockerSeverity @default(MEDIUM)
+  resolvedAt DateTime?
+  createdAt  DateTime        @default(now())
+
+  @@index([taskId])
+}
+
+enum BlockerSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// タスクコメント
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+// ==========================================
+// 通知システム（Web Push / Slack対応）
+// ==========================================
 
 enum NotificationEventType {
   TASK_DUE_SOON
@@ -163,20 +295,20 @@ model NotificationSubscription {
 }
 
 model NotificationPreference {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  timezone         String   @default("Asia/Tokyo")
-  quietHoursStart  Int?
-  quietHoursEnd    Int?
-  pushEnabled      Boolean  @default(true)
-  dueSoonEnabled   Boolean  @default(true)
-  overdueEnabled   Boolean  @default(true)
-  assignmentEnabled Boolean @default(true)
-  slackWebhookUrl  String?
-  slackEnabled     Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timezone          String   @default("Asia/Tokyo")
+  quietHoursStart   Int?
+  quietHoursEnd     Int?
+  pushEnabled       Boolean  @default(true)
+  dueSoonEnabled    Boolean  @default(true)
+  overdueEnabled    Boolean  @default(true)
+  assignmentEnabled Boolean  @default(true)
+  slackWebhookUrl   String?
+  slackEnabled      Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model NotificationEvent {
@@ -220,70 +352,4 @@ model NotificationDelivery {
 
   @@index([eventId, status])
   @@index([subscriptionId, status])
-}
-
-// === 追加: タスク間の依存関係 ===
-model TaskDependency {
-  id             String   @id @default(uuid())
-  // このタスクが完了するまで、dependentTask は開始できない
-  predecessorId  String
-  predecessor    Task     @relation("PredecessorOf", fields: [predecessorId], references: [id])
-  dependentId    String
-  dependent      Task     @relation("DependsOn", fields: [dependentId], references: [id])
-  type           DependencyType @default(FINISH_TO_START)
-  createdAt      DateTime @default(now())
-
-  @@unique([predecessorId, dependentId])
-}
-
-enum DependencyType {
-  FINISH_TO_START   // 前工程完了後に開始（標準）
-  START_TO_START    // 同時開始
-  FINISH_TO_FINISH  // 同時完了
-}
-
-// === 追加: タスクの担当・RACI ===
-model TaskAssignment {
-  id       String   @id @default(uuid())
-  taskId   String
-  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId   String
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role     AssignRole // RESPONSIBLE / ACCOUNTABLE / CONSULTED / INFORMED
-}
-
-enum AssignRole {
-  RESPONSIBLE
-  ACCOUNTABLE
-  CONSULTED
-  INFORMED
-}
-
-// === 追加: ブロッカー/リスク ===
-model TaskBlocker {
-  id          String    @id @default(uuid())
-  taskId      String
-  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  reason      String
-  severity    BlockerSeverity @default(MEDIUM)
-  resolvedAt  DateTime?
-  createdAt   DateTime  @default(now())
-}
-
-enum BlockerSeverity {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-// === 追加: コメント ===
-model TaskComment {
-  id        String   @id @default(uuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  body      String
-  createdAt DateTime @default(now())
 }

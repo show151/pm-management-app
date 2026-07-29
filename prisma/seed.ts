@@ -10,7 +10,7 @@ async function main() {
   await prisma.user.deleteMany()
 
   // 2. ダミーユーザーの作成
-  // ※本来はSupabase AuthのIDを使いますが、テスト用に適当なIDを作ります
+  // ※Better AuthのユーザーIDを使いますが、テスト用に適当なIDを作ります
   const user = await prisma.user.create({
     data: {
       id: 'test-user-id',

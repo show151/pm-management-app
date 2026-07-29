@@ -1,15 +1,10 @@
-import { prisma } from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+// src/lib/project-access.ts
+import { prisma } from "@/lib/prisma";
+import { getAuthUserOrThrow, type AuthUser } from "@/lib/auth-session";
 
-export async function getCurrentUserOrThrow() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error('UNAUTHORIZED')
-  }
-
-  return user
+// 後方互換性のため、getCurrentUserOrThrowもエクスポート
+export async function getCurrentUserOrThrow(): Promise<AuthUser> {
+  return getAuthUserOrThrow();
 }
 
 export async function canAccessProject(projectId: string, userId: string) {

@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server'
 import { NotificationEventType } from '@prisma/client'
-import { createClient } from '@/utils/supabase/server'
+import { getAuthUser } from '@/lib/auth-session'
 import { enqueueNotificationEvent } from '@/lib/notifications'
-
-async function getAuthUser() {
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) return null
-  return data.user
-}
 
 export async function POST() {
   const user = await getAuthUser()

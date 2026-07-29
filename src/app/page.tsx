@@ -1,7 +1,7 @@
 // src/app/page.tsx
 
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+import { getAuthUser } from '@/lib/auth-session'
 import { redirect } from 'next/navigation'
 import Header from '@/components/Header'
 import NewProjectButton from '@/components/NewProjectButton'
@@ -47,16 +47,8 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
   const page = parseInt(searchParams.page as string || '1', 10)
   const pageSize = 10
 
-  // 1. Supabaseのユーザー情報を取得
-  const supabase = await createClient()
-  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null = null
-
-  try {
-    const { data, error } = await supabase.auth.getUser()
-    user = error ? null : data.user
-  } catch {
-    user = null
-  }
+  // 1. Better Authのユーザー情報を取得
+  const user = await getAuthUser()
 
   // 2. 未ログインはログイン画面へ
   if (!user) {
@@ -64,9 +56,8 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
   }
 
   // 3. ユーザーがPrisma側のDBに存在するか確認し、いなければ作成（同期）
-  // ※AuthのIDと、PrismaのUserテーブルのIDを一致させます
-  const metadataName = typeof user.user_metadata?.name === 'string' ? user.user_metadata.name.trim() : ''
   const fallbackName = user.email?.split('@')[0] || 'New User'
+  const userName = user.name?.trim() || fallbackName
   let dbUser = await prisma.user.findUnique({
     where: { id: user.id }
   })
@@ -74,15 +65,15 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
   if (!dbUser) {
     dbUser = await prisma.user.create({
       data: {
-        id: user.id, // Supabase AuthのUUIDを使う
-        email: user.email!,
-        name: metadataName || fallbackName,
+        id: user.id,
+        email: user.email,
+        name: userName,
       }
     })
-  } else if (!dbUser.name && metadataName) {
+  } else if (!dbUser.name && user.name) {
     dbUser = await prisma.user.update({
       where: { id: user.id },
-      data: { name: metadataName },
+      data: { name: user.name },
     })
   }
 

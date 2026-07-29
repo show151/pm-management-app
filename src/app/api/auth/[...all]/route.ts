@@ -1,28 +1,19 @@
 // src/app/api/auth/[...all]/route.ts
 import { auth } from "@/lib/auth";
 import { toNextJsHandler } from "better-auth/next-js";
-import { NextResponse } from "next/server";
 
-const { GET: baseGET, POST: basePOST } = toNextJsHandler(auth);
+export const { GET, POST } = toNextJsHandler(auth);
 
-function addNoCacheHeaders(response: Response) {
-  const headers = new Headers(response.headers);
-  headers.set("Cache-Control", "no-cache, no-store, must-revalidate, private");
-  headers.set("Pragma", "no-cache");
-  headers.set("Expires", "0");
-  return new NextResponse(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
+// OPTIONSリクエストを処理（CORSプリフライト対応）
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Max-Age": "86400",
+    },
   });
-}
-
-export async function GET(request: Request) {
-  const response = await baseGET(request);
-  return addNoCacheHeaders(response);
-}
-
-export async function POST(request: Request) {
-  const response = await basePOST(request);
-  return addNoCacheHeaders(response);
 }

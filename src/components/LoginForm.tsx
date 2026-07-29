@@ -75,8 +75,8 @@ export default function LoginForm() {
       return;
     }
 
-    router.push("/");
-    router.refresh();
+    // フルページリロードで遷移（クッキーを確実にサーバーに送信するため）
+    window.location.href = "/";
   }
 
   async function handleSignUp(e: React.FormEvent) {
@@ -119,8 +119,8 @@ export default function LoginForm() {
     }
 
     // 新規登録後、自動ログインされる（autoSignIn: true）
-    router.push("/");
-    router.refresh();
+    // フルページリロードで遷移（クッキーを確実にサーバーに送信するため）
+    window.location.href = "/";
   }
 
   return (

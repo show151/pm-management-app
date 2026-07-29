@@ -62,10 +62,18 @@ export default function LoginForm() {
       }
     }
 
-    const result = await authClient.signIn.email({
-      email: loginEmail,
-      password,
-    });
+    let result;
+    try {
+      result = await authClient.signIn.email({
+        email: loginEmail,
+        password,
+      });
+    } catch (err) {
+      console.error("Login fetch error:", err);
+      setMessage("ログインに失敗しました（ネットワークエラー）");
+      setLoading(false);
+      return;
+    }
 
     if (result.error) {
       console.error("Login error:", result.error);
@@ -100,11 +108,19 @@ export default function LoginForm() {
     const fallbackName = emailInput.split("@")[0] || "New User";
     const name = usernameInput || fallbackName;
 
-    const signUpResult = await authClient.signUp.email({
-      email: emailInput,
-      password,
-      name,
-    });
+    let signUpResult;
+    try {
+      signUpResult = await authClient.signUp.email({
+        email: emailInput,
+        password,
+        name,
+      });
+    } catch (err) {
+      console.error("Sign up fetch error:", err);
+      setMessage("登録に失敗しました（ネットワークエラー）");
+      setLoading(false);
+      return;
+    }
 
     if (signUpResult.error) {
       console.error("Sign up error:", signUpResult.error);

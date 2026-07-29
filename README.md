@@ -352,15 +352,14 @@ npm run dev
 
 #### Vercel Cron（推奨）
 
-`vercel.json` に Cron 設定が含まれています。Vercel にデプロイすると、毎日午前1時（Asia/Tokyo）に自動で通知ディスパッチが実行されます。
+`vercel.json` に Cron 設定が含まれています。Vercel にデプロイすると、毎日午前1時（Asia/Tokyo、UTC 16:00）に自動で通知ディスパッチが実行されます。
 
 ```json
 {
   "crons": [
     {
       "path": "/api/notifications/dispatch?limit=100",
-      "schedule": "0 1 * * *",
-      "timezone": "Asia/Tokyo",
+      "schedule": "0 16 * * *",
       "headers": {
         "x-notification-secret": "${NOTIFICATION_CRON_SECRET}"
       }
@@ -369,7 +368,7 @@ npm run dev
 }
 ```
 
-> **注**：Vercel の環境変数に `NOTIFICATION_CRON_SECRET` を設定する必要があります。Vercel ダッシュボード → Settings → Environment Variables から追加してください。
+> **注**：Vercel の環境変数に `NOTIFICATION_CRON_SECRET` を設定する必要があります。Vercel ダッシュボード → Settings → Environment Variables から追加してください。Cron のスケジュールは UTC で指定します（`0 16 * * *` = 毎日午前16:00 UTC = 日本午前1時）。
 
 #### 外部 Cron（GitHub Actions など）
 

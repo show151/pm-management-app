@@ -1,13 +1,15 @@
 // src/app/api/auth/[...all]/route.ts
 import { auth } from "@/lib/auth";
-import { NextRequest } from "next/server";
+import { toNextJsHandler } from "better-auth/next-js";
 
-export async function GET(request: NextRequest) {
-  return handleRequest(request);
+const { GET: baseGET, POST: basePOST } = toNextJsHandler(auth);
+
+export async function GET(request: Request) {
+  return baseGET(request);
 }
 
-export async function POST(request: NextRequest) {
-  return handleRequest(request);
+export async function POST(request: Request) {
+  return basePOST(request);
 }
 
 export async function OPTIONS() {
@@ -21,25 +23,4 @@ export async function OPTIONS() {
       "Access-Control-Max-Age": "86400",
     },
   });
-}
-
-async function handleRequest(request: NextRequest) {
-  // Next.js 16 Turbopack consumes the body, so we need to read it and reconstruct
-  const url = new URL(request.url);
-  let bodyText: string | undefined;
-  try {
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      bodyText = await request.text();
-    }
-  } catch {
-    // body already consumed
-  }
-
-  const newRequest = new Request(url, {
-    method: request.method,
-    headers: new Headers(request.headers),
-    body: bodyText || undefined,
-  });
-
-  return auth.handler(newRequest);
 }

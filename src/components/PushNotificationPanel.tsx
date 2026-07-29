@@ -399,17 +399,37 @@ export default function PushNotificationPanel() {
               </option>
             ))}
           </select>
-        </div>
-        <button
-          type="button"
-          onClick={handleSavePreference}
-          disabled={isSavingPreference || isBusy}
-          className="btn btn-secondary"
-        >
-          {isSavingPreference ? '保存中...' : '通知設定を保存'}
-        </button>
-      </div>
-      {message && <p className="text-xs text-sky-200">{message}</p>}
-    </section>
-  )
-}
+         </div>
+
+         <div className="border-t border-white/10 pt-3 space-y-2">
+           <h4 className="text-xs font-bold text-gray-200">Slack 連携</h4>
+           <input
+             type="url"
+             value={preference.slackWebhookUrl ?? ''}
+             onChange={(e) => setPreference((prev) => ({ ...prev, slackWebhookUrl: e.target.value || null }))}
+             placeholder="https://hooks.slack.com/services/..."
+             className="form-control text-xs w-full"
+           />
+           <label className="flex items-center gap-2 text-xs text-gray-100">
+             <input
+               type="checkbox"
+               checked={preference.slackEnabled}
+               onChange={(e) => setPreference((prev) => ({ ...prev, slackEnabled: e.target.checked }))}
+             />
+             Slack 通知を有効化
+           </label>
+         </div>
+
+         <button
+           type="button"
+           onClick={handleSavePreference}
+           disabled={isSavingPreference || isBusy}
+           className="btn btn-secondary"
+         >
+           {isSavingPreference ? '保存中...' : '通知設定を保存'}
+         </button>
+       </div>
+       {message && <p className="text-xs text-sky-200">{message}</p>}
+     </section>
+   )
+ }

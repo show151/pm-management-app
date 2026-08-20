@@ -12,6 +12,10 @@ type Props = {
   items: TimelineItem[]
 }
 
+type Column = 
+  | { type: 'day'; date: Date; ms: number }
+  | { type: 'gap'; skippedDays: number; gapStartMs: number; gapEndMs: number }
+
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 function startOfDay(date: Date) {
@@ -65,9 +69,42 @@ export default function TimelineChart({ title, emptyMessage, items }: Props) {
   const maxMs = Math.max(...normalized.map((item) => item.endMs))
   const safeMaxMs = maxMs === minMs ? maxMs + ONE_DAY_MS : maxMs
 
-  const days: Date[] = []
+  const allDays: Date[] = []
   for (let current = minMs; current <= safeMaxMs; current += ONE_DAY_MS) {
-    days.push(new Date(current))
+    allDays.push(new Date(current))
+  }
+
+  // 重要な日（アイテムの開始・終了日±1日）を収集
+  const importantMs = new Set<number>()
+  normalized.forEach((item) => {
+    for (let offset = -1; offset <= 1; offset++) {
+      importantMs.add(item.startMs + offset * ONE_DAY_MS)
+      importantMs.add(item.endMs + offset * ONE_DAY_MS)
+    }
+  })
+
+  // 省略付きカラムリストを構築（3日以上の空白ギャップを省略）
+  const columns: Column[] = []
+  let i = 0
+  while (i < allDays.length) {
+    const dayMs = allDays[i].getTime()
+    if (importantMs.has(dayMs)) {
+      columns.push({ type: 'day', date: allDays[i], ms: dayMs })
+      i++
+    } else {
+      let gapStart = i
+      while (i < allDays.length && !importantMs.has(allDays[i].getTime())) {
+        i++
+      }
+      const skipped = i - gapStart
+      if (skipped >= 3) {
+        columns.push({ type: 'gap', skippedDays: skipped, gapStartMs: allDays[gapStart].getTime(), gapEndMs: allDays[i - 1].getTime() })
+      } else {
+        for (let j = gapStart; j < i; j++) {
+          columns.push({ type: 'day', date: allDays[j], ms: allDays[j].getTime() })
+        }
+      }
+    }
   }
 
   return (
@@ -81,11 +118,20 @@ export default function TimelineChart({ title, emptyMessage, items }: Props) {
               <th className="bg-gray-900 border border-gray-700 px-3 py-2 text-left text-gray-200 min-w-44">
                 項目
               </th>
-              {days.map((day) => (
-                <th key={day.toISOString()} className="bg-gray-900 border border-gray-700 px-1 py-2 text-gray-400 min-w-8">
-                  {formatHeader(day)}
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                if (col.type === 'gap') {
+                  return (
+                    <th key={`gap-${idx}`} className="bg-gray-800 border border-gray-700 px-1 py-2 text-gray-500 text-[10px] w-8">
+                      ...
+                    </th>
+                  )
+                }
+                return (
+                  <th key={col.date.toISOString()} className="bg-gray-900 border border-gray-700 px-1 py-2 text-gray-400 min-w-8">
+                    {formatHeader(col.date)}
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -107,14 +153,28 @@ export default function TimelineChart({ title, emptyMessage, items }: Props) {
                       </div>
                     </div>
                   </td>
-                  {days.map((day) => {
-                    const dayMs = day.getTime()
+                  {columns.map((col, idx) => {
+                    if (col.type === 'gap') {
+                      // ギャップ期間中にタスクがまたがっているか判定
+                      const overlaps = item.startMs <= col.gapEndMs && item.endMs >= col.gapStartMs
+                      return (
+                        <td
+                          key={`gap-${item.id}-${idx}`}
+                          className={`border border-gray-700 h-6 w-8 text-center text-gray-600/30 overflow-hidden ${overlaps ? rowColor : 'bg-gray-800'}`}
+                          title={overlaps ? `${item.title}: 省略期間中` : undefined}
+                        >
+                          ・
+                        </td>
+                      )
+                    }
+
+                    const dayMs = col.ms
                     const inRange = dayMs >= item.startMs && dayMs <= item.endMs
                     return (
                       <td
-                        key={`${item.id}-${day.toISOString()}`}
+                        key={`${item.id}-${col.date.toISOString()}`}
                         className={`border border-gray-700 h-6 min-w-8 ${inRange ? rowColor : 'bg-gray-800'}`}
-                        title={inRange ? `${item.title}: ${formatDate(day)}` : undefined}
+                        title={inRange ? `${item.title}: ${formatDate(col.date)}` : undefined}
                       />
                     )
                   })}

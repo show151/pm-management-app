@@ -67,6 +67,9 @@ export default function TaskActions({
       editDueDate,
       editAssigneeId
     )
+    if (selectedPredecessor) {
+      await addDependency(selectedPredecessor, taskId)
+    }
     setIsEditing(false)
   }
 

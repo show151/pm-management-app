@@ -18,6 +18,7 @@ import TaskBlockerUI from '@/components/TaskBlockerUI'
 import TaskComments from '@/components/TaskComments'
 import PriorityMatrix from '@/components/PriorityMatrix'
 import CloseDetailsButton from '@/components/CloseDetailsButton'
+import ParentTaskToggle from '@/components/ParentTaskToggle'
 
 export default async function ProjectPage(props: {
   params: Promise<{ id: string }>
@@ -265,13 +266,17 @@ export default async function ProjectPage(props: {
             <div className="space-y-4">
               {project.tasks.length > 0 ? (
             project.tasks.map((task) => (
-              <div key={task.id} className="border border-blue-700 rounded-lg overflow-hidden">
+              <ParentTaskToggle
+                key={task.id}
+                taskId={task.id}
+                taskTitle={task.title}
+                taskStatus={task.status}
+                childrenCount={task.children.length}
+                doneChildrenCount={task.children.filter(c => c.status === 'DONE').length}
+              >
                 <div className={`p-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 transition-colors ${task.status === 'DONE' ? 'bg-slate-800/80 opacity-70' : 'bg-slate-900/70'}`}>
                   <div className="flex-grow">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className={`font-bold text-lg ${task.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'}`}>
-                        {task.title}
-                      </h3>
                       <TaskActions
                         taskId={task.id}
                         title={task.title}
@@ -298,6 +303,11 @@ export default async function ProjectPage(props: {
                       <span className="bg-indigo-500/70 text-white px-2 py-0.5 rounded">
                         担当: {task.assignee?.name || task.assignee?.email || '未割当'}
                       </span>
+                      {task.predecessors.length > 0 && (
+                        <span className="bg-amber-900/40 text-amber-200 px-2 py-0.5 rounded" title="先行タスク">
+                          先行: {task.predecessors.map(p => allTasks.find(t => t.id === p.predecessorId)?.title).filter(Boolean).join(', ')}
+                        </span>
+                      )}
                       <TaskComments taskId={task.id} taskTitle={task.title} commentCount={task._count.comments} />
                     </div>
                   </div>
@@ -318,9 +328,9 @@ export default async function ProjectPage(props: {
                 </div>
 
                 <div className="bg-gray-800 p-3 sm:pl-8 border-t border-gray-600">
-                  {task.children.length > 0 && (
+                  {task.children.filter(c => c.status !== 'DONE').length > 0 && (
                     <div className="space-y-2 mb-3">
-                      {task.children.map((subTask) => (
+                      {task.children.filter(c => c.status !== 'DONE').map((subTask) => (
                         <div
                           key={subTask.id}
                           className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 bg-gray-700 p-2.5 rounded border border-gray-600 text-sm"
@@ -346,6 +356,11 @@ export default async function ProjectPage(props: {
                               {subTask.estimatedMinutes && (
                                 <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
                                   {subTask.estimatedMinutes}分
+                                </span>
+                              )}
+                              {subTask.predecessors.length > 0 && (
+                                <span className="text-[10px] text-amber-200 bg-amber-900/40 px-1.5 py-0.5 rounded" title="先行タスク">
+                                  先行: {subTask.predecessors.map(p => allTasks.find(t => t.id === p.predecessorId)?.title).filter(Boolean).join(', ')}
                                 </span>
                               )}
                               <TaskActions
@@ -422,7 +437,15 @@ export default async function ProjectPage(props: {
                             </option>
                           ))}
                         </select>
-                        <div className="md:col-span-2 lg:col-span-1 flex gap-2">
+                        <select name="predecessorId" className="form-control px-2 py-1 text-xs w-full md:w-auto" defaultValue="">
+                          <option value="">先行タスク: なし</option>
+                          {task.children.filter(child => child.status !== 'DONE').map((child) => (
+                            <option key={`sub-pred-${task.id}-${child.id}`} value={child.id}>
+                              先行: {child.title}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="md:col-span-2 lg:col-span-2 flex gap-2">
                           <button type="submit" className="btn btn-primary flex-1 px-3 py-1">追加</button>
                           <CloseDetailsButton className="btn btn-secondary flex-1 px-3 py-1 text-center">
                             キャンセル
@@ -432,7 +455,7 @@ export default async function ProjectPage(props: {
                     </div>
                   </details>
                 </div>
-              </div>
+              </ParentTaskToggle>
             ))
           ) : (
             <p className="text-center text-gray-500 py-4">タスクはありません</p>

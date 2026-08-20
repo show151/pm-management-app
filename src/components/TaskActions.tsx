@@ -48,7 +48,7 @@ export default function TaskActions({
   const [selectedPredecessor, setSelectedPredecessor] = useState('')
   const [depError, setDepError] = useState('')
 
-  const availablePredecessors = allTasks.filter(t => t.id !== taskId && !predecessors.some(p => p.predecessorId === t.id))
+  const availablePredecessors = allTasks.filter(t => t.id !== taskId && t.status !== 'DONE' && !predecessors.some(p => p.predecessorId === t.id))
 
   const handleDelete = async () => {
     if (!confirm('このタスクを削除しますか？')) return

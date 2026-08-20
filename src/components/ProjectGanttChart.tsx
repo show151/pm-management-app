@@ -123,8 +123,9 @@ export default function ProjectGanttChart({ tasks }: Props) {
     return { ...t, startMs: s, endMs: Math.max(s, e) }
   })
 
-  const minMs = Math.min(...normalized.map(t => t.startMs))
-  const maxMs = Math.max(...normalized.map(t => t.endMs))
+  const todayMs = startOfDay(new Date()).getTime()
+  const minMs = todayMs
+  const maxMs = Math.max(...normalized.map(t => t.endMs), todayMs)
   const safeMaxMs = maxMs === minMs ? maxMs + ONE_DAY_MS * 7 : maxMs + ONE_DAY_MS * 3
 
   const days: Date[] = []

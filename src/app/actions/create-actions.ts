@@ -18,6 +18,8 @@ export async function createTask(formData: FormData) {
   const parentId = formData.get('parentId') as string | null
   const assigneeIdRaw = (formData.get('assigneeId') as string | null) ?? ''
   const assigneeId = assigneeIdRaw.trim() || null
+  const predecessorIdRaw = formData.get('predecessorId') as string | null
+  const predecessorId = predecessorIdRaw?.trim() || null
 
   const startDateStr = formData.get('startDate') as string
   const dueDateStr = formData.get('dueDate') as string
@@ -54,6 +56,9 @@ export async function createTask(formData: FormData) {
       startDate,
       dueDate: dueDate,
       status: 'TODO',
+      predecessors: predecessorId ? {
+        create: [{ predecessorId }]
+      } : undefined,
     },
   })
   if (assigneeId) {

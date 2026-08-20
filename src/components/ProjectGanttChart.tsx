@@ -95,12 +95,23 @@ export default function ProjectGanttChart({ tasks }: Props) {
   }, [tasks])
 
   const visibleTasks = useMemo(() => {
+    const todayMs = startOfDay(new Date()).getTime()
+
+    const isVisible = (status: string, startDateStr: string, endDateStr: string | null) => {
+      if (status !== 'DONE' && status !== 'COMPLETED') return true
+      const start = startOfDay(new Date(startDateStr))
+      const end = startOfDay(endDateStr ? new Date(endDateStr) : start)
+      return end.getTime() >= todayMs
+    }
+
+    const filteredTasks = tasks.filter(t => isVisible(t.status, t.startDate, t.endDate))
+
     const result: GanttTask[] = []
-    tasks.forEach(t => {
+    filteredTasks.forEach(t => {
       if (!t.isChild) {
         result.push(t)
         if (expandedParentIds[t.id]) {
-          const children = tasks.filter(c => c.parentId === t.id)
+          const children = filteredTasks.filter(c => c.parentId === t.id)
           result.push(...children)
         }
       }
@@ -120,7 +131,15 @@ export default function ProjectGanttChart({ tasks }: Props) {
     const s = startOfDay(new Date(t.startDate)).getTime()
     const eDate = t.endDate ? new Date(t.endDate) : new Date(t.startDate)
     const e = startOfDay(eDate).getTime()
-    return { ...t, startMs: s, endMs: Math.max(s, e) }
+    let endMs = Math.max(s, e)
+    
+    // 未完了で期限が過去のものは、今日までバーを伸ばす（まだ終わっていないため）
+    const todayMs = startOfDay(new Date()).getTime()
+    if (t.status !== 'DONE' && t.status !== 'COMPLETED' && endMs < todayMs) {
+      endMs = todayMs
+    }
+    
+    return { ...t, startMs: s, endMs }
   })
 
   const todayMs = startOfDay(new Date()).getTime()

@@ -62,36 +62,50 @@ export default function TaskTimelineChart({ items }: Props) {
   const [expandedParentIds, setExpandedParentIds] = useState<Record<string, boolean>>({})
 
   const visibleItems = useMemo(() => {
-    return items.flatMap((parent) => {
-      const parentRow = {
-        id: parent.id,
-        title: `親: ${parent.title}`,
-        startDate: parent.startDate,
-        endDate: parent.endDate,
-        status: parent.status,
-        isChild: false,
-        parentId: parent.id,
-        hasChildren: parent.children.length > 0,
-      }
+    const todayMs = startOfDay(new Date()).getTime()
 
-      if (!expandedParentIds[parent.id]) {
-        return [parentRow]
-      }
+    const isVisible = (status: string, startDateStr: string, endDateStr: string | null) => {
+      const start = startOfDay(new Date(startDateStr))
+      const end = startOfDay(toDate(endDateStr) ?? start)
+      // タイムラインは期限切れ（今日より前）ならステータス問わず非表示
+      return end.getTime() >= todayMs
+    }
 
-      const childRows = parent.children.map((child) => ({
-        id: child.id,
-        title: `子: ${child.title}`,
-        startDate: child.startDate,
-        endDate: child.endDate,
-        status: child.status,
-        isChild: true,
-        parentId: parent.id,
-        hasChildren: false,
-      }))
+    return items
+      .filter((parent) => isVisible(parent.status, parent.startDate, parent.endDate))
+      .flatMap((parent) => {
+        const parentRow = {
+          id: parent.id,
+          title: `親: ${parent.title}`,
+          startDate: parent.startDate,
+          endDate: parent.endDate,
+          status: parent.status,
+          isChild: false,
+          parentId: parent.id,
+          hasChildren: parent.children.length > 0,
+        }
 
-      return [parentRow, ...childRows]
-    })
+        if (!expandedParentIds[parent.id]) {
+          return [parentRow]
+        }
+
+        const childRows = parent.children
+          .filter((child) => isVisible(child.status, child.startDate, child.endDate))
+          .map((child) => ({
+            id: child.id,
+            title: `子: ${child.title}`,
+            startDate: child.startDate,
+            endDate: child.endDate,
+            status: child.status,
+            isChild: true,
+            parentId: parent.id,
+            hasChildren: false,
+          }))
+
+        return [parentRow, ...childRows]
+      })
   }, [items, expandedParentIds])
+
 
   if (items.length === 0) {
     return (

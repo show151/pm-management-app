@@ -265,7 +265,85 @@ export default async function ProjectPage(props: {
 
             <div className="space-y-4">
               {project.tasks.length > 0 ? (
-            project.tasks.map((task) => (
+            project.tasks.map((task) => {
+              const activeSubTasks = task.children.filter(c => c.status !== 'DONE')
+              const doneSubTasks = task.children.filter(c => c.status === 'DONE')
+
+              const renderSubTask = (subTask: typeof task.children[0]) => (
+                <div
+                  key={subTask.id}
+                  className={`flex flex-col md:flex-row md:items-start md:justify-between gap-3 p-2.5 rounded border text-sm transition-colors ${
+                    subTask.status === 'DONE' ? 'bg-gray-800/80 border-gray-700 opacity-80' : 'bg-gray-700 border-gray-600'
+                  }`}
+                >
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <span className="text-gray-500 leading-6 shrink-0">└</span>
+                      <div className="shrink-0">
+                        <TaskDate date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
+                        <div className="mt-1">
+                          <TaskBlockerUI taskId={subTask.id} blockers={subTask.blockers} />
+                        </div>
+                      </div>
+                      <span
+                        className={`min-w-0 break-words leading-6 ${
+                          subTask.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'
+                        }`}
+                      >
+                        {subTask.title}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pl-5 md:pl-0">
+                      {subTask.estimatedMinutes && (
+                        <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
+                          {subTask.estimatedMinutes}分
+                        </span>
+                      )}
+                      {subTask.predecessors.length > 0 && (
+                        <span className="text-[10px] text-amber-200 bg-amber-900/40 px-1.5 py-0.5 rounded" title="先行タスク">
+                          先行: {subTask.predecessors.map(p => allTasks.find(t => t.id === p.predecessorId)?.title).filter(Boolean).join(', ')}
+                        </span>
+                      )}
+                      <TaskActions
+                        taskId={subTask.id}
+                        title={subTask.title}
+                        importance={subTask.importance}
+                        urgency={subTask.urgency}
+                        estimatedMinutes={subTask.estimatedMinutes}
+                        startDate={subTask.startDate}
+                        dueDate={subTask.dueDate}
+                        assigneeId={subTask.assigneeId}
+                        assigneeOptions={assigneeOptions}
+                        isSubTask={true}
+                        predecessors={subTask.predecessors}
+                        allTasks={allTasks}
+                      />
+                      <span className="text-[10px] text-indigo-200 bg-indigo-900/40 px-1.5 py-0.5 rounded">
+                        担当: {subTask.assignee?.name || subTask.assignee?.email || '未割当'}
+                      </span>
+                      <TaskComments taskId={subTask.id} taskTitle={subTask.title} commentCount={subTask._count.comments} />
+                    </div>
+                  </div>
+                  <div className="w-full md:w-auto md:shrink-0">
+                    <TaskStatusButton
+                      taskId={subTask.id}
+                      status={subTask.status}
+                      actualMinutes={subTask.actualMinutes}
+                      estimatedMinutes={subTask.estimatedMinutes}
+                      reflection={subTask.reflection}
+                      startDate={subTask.startDate}
+                      dueDate={subTask.dueDate}
+                      actualStartAt={subTask.actualStartAt}
+                      actualEndAt={subTask.actualEndAt}
+                      isSubTask={true}
+                      predecessors={subTask.predecessors}
+                      allTasks={allTasks}
+                    />
+                  </div>
+                </div>
+              )
+
+              return (
               <ParentTaskToggle
                 key={task.id}
                 taskId={task.id}
@@ -328,80 +406,21 @@ export default async function ProjectPage(props: {
                 </div>
 
                 <div className="bg-gray-800 p-3 sm:pl-8 border-t border-gray-600">
-                  {task.children.filter(c => c.status !== 'DONE').length > 0 && (
+                  {activeSubTasks.length > 0 && (
                     <div className="space-y-2 mb-3">
-                      {task.children.filter(c => c.status !== 'DONE').map((subTask) => (
-                        <div
-                          key={subTask.id}
-                          className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 bg-gray-700 p-2.5 rounded border border-gray-600 text-sm"
-                        >
-                          <div className="min-w-0 flex-1 space-y-2">
-                            <div className="flex items-start gap-2 min-w-0">
-                              <span className="text-gray-500 leading-6 shrink-0">└</span>
-                              <div className="shrink-0">
-                                <TaskDate date={subTask.dueDate} isDone={subTask.status === 'DONE'} isSubTask={true} />
-                                <div className="mt-1">
-                                  <TaskBlockerUI taskId={subTask.id} blockers={subTask.blockers} />
-                                </div>
-                              </div>
-                              <span
-                                className={`min-w-0 break-words leading-6 ${
-                                  subTask.status === 'DONE' ? 'line-through text-gray-500' : 'text-white'
-                                }`}
-                              >
-                                {subTask.title}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 pl-5 md:pl-0">
-                              {subTask.estimatedMinutes && (
-                                <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
-                                  {subTask.estimatedMinutes}分
-                                </span>
-                              )}
-                              {subTask.predecessors.length > 0 && (
-                                <span className="text-[10px] text-amber-200 bg-amber-900/40 px-1.5 py-0.5 rounded" title="先行タスク">
-                                  先行: {subTask.predecessors.map(p => allTasks.find(t => t.id === p.predecessorId)?.title).filter(Boolean).join(', ')}
-                                </span>
-                              )}
-                              <TaskActions
-                                taskId={subTask.id}
-                                title={subTask.title}
-                                importance={subTask.importance}
-                                urgency={subTask.urgency}
-                                estimatedMinutes={subTask.estimatedMinutes}
-                                startDate={subTask.startDate}
-                                dueDate={subTask.dueDate}
-                                assigneeId={subTask.assigneeId}
-                                assigneeOptions={assigneeOptions}
-                                isSubTask={true}
-                                predecessors={subTask.predecessors}
-                                allTasks={allTasks}
-                              />
-                              <span className="text-[10px] text-indigo-200 bg-indigo-900/40 px-1.5 py-0.5 rounded">
-                                担当: {subTask.assignee?.name || subTask.assignee?.email || '未割当'}
-                              </span>
-                              <TaskComments taskId={subTask.id} taskTitle={subTask.title} commentCount={subTask._count.comments} />
-                            </div>
-                          </div>
-                          <div className="w-full md:w-auto md:shrink-0">
-                            <TaskStatusButton
-                              taskId={subTask.id}
-                              status={subTask.status}
-                              actualMinutes={subTask.actualMinutes}
-                              estimatedMinutes={subTask.estimatedMinutes}
-                              reflection={subTask.reflection}
-                              startDate={subTask.startDate}
-                              dueDate={subTask.dueDate}
-                              actualStartAt={subTask.actualStartAt}
-                              actualEndAt={subTask.actualEndAt}
-                              isSubTask={true}
-                              predecessors={subTask.predecessors}
-                              allTasks={allTasks}
-                            />
-                          </div>
-                        </div>
-                      ))}
+                      {activeSubTasks.map(renderSubTask)}
                     </div>
+                  )}
+
+                  {doneSubTasks.length > 0 && (
+                    <details className="text-xs mb-3 group">
+                      <summary className="cursor-pointer text-gray-400 hover:text-gray-300 font-medium mb-2">
+                        完了したサブタスク ({doneSubTasks.length})
+                      </summary>
+                      <div className="space-y-2 pl-2 border-l-2 border-gray-700">
+                        {doneSubTasks.map(renderSubTask)}
+                      </div>
+                    </details>
                   )}
 
                   <details className="text-xs">
@@ -456,7 +475,8 @@ export default async function ProjectPage(props: {
                   </details>
                 </div>
               </ParentTaskToggle>
-            ))
+              )
+            })
           ) : (
             <p className="text-center text-gray-500 py-4">タスクはありません</p>
           )}
